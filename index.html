@@ -52,7 +52,7 @@ pre{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 
 [hidden]{display:none!important}a{color:var(--accent)}
 .pill:not(.ok):not(.warn):not(.bad){color:var(--mute)}
 </style></head><body>
-<header class="top"><h1>Mazda CX-5<small>diagnose</small></h1>
+<header class="top"><h1>Mazda CX-5<small>diagnose · v2</small></h1>
 <div class="row"><div id="pill" class="pill">Niet verbonden</div>
 <button id="connBtn">Verbinden</button><button id="demoBtn" class="ghost">Demo</button><button id="stopBtn" class="ghost" hidden>Verbreken</button></div></header>
 <div id="connHelp" class="small mute" style="max-width:1120px;margin:-8px auto 12px;padding:0 28px">
@@ -200,6 +200,15 @@ function hexToBytes(h) { const out = new Uint8Array(h.length >> 1); for (let i =
 const bytesToHex = b => Array.from(b, x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
 const intFromBytes = (b, n) => { let v = 0; for (let i = 0; i < n; i++) v = v * 256 + b[i]; return v; };
 const anyNonZero = b => Array.from(b).some(x => x !== 0);
+// Maakt van elke fout leesbare tekst, ook als de browser alleen een getal teruggeeft.
+function errText(e) {
+  if (e == null) return 'onbekende fout';
+  if (typeof e !== 'object') return 'code ' + String(e);
+  const parts = [e.name, e.message, e.code != null ? 'code ' + e.code : null].filter(Boolean);
+  if (parts.length) return parts.join(' – ');
+  try { return JSON.stringify(e); } catch (x) { return String(e); }
+}
+const isCancel = e => !!e && typeof e === 'object' && (e.name === 'NotFoundError' || /cancel/i.test(e.message || ''));
 
 // ---------------------------------------------------------------------------
 // Antwoorden van de ELM327 lezen
@@ -316,12 +325,28 @@ function parseCustom(text) {
 // ---------------------------------------------------------------------------
 class BleAdapter {
   // Moet direct vanuit een tik/klik worden aangeroepen (eis van de browser).
+  // Probeert een paar varianten na elkaar, omdat niet elke browser (o.a. Bluefy) alle opties slikt.
   static async pick(showAll) {
     if (!navigator.bluetooth) throw new Error('Deze browser kan geen Bluetooth gebruiken. Open de pagina in Bluefy (iPhone) of Chrome (Mac).');
-    const opts = showAll
-      ? { acceptAllDevices: true, optionalServices: BLE_SERVICES }
-      : { filters: ['vLink', 'VLINK', 'Vlink', 'vlink', 'OBD', 'Vgate', 'IOS-Vlink'].map(n => ({ namePrefix: n })), optionalServices: BLE_SERVICES };
-    return navigator.bluetooth.requestDevice(opts);
+    const full = BLE_SERVICES.map(u => typeof u === 'number' ? '0000' + u.toString(16).padStart(4, '0') + '-0000-1000-8000-00805f9b34fb' : u);
+    const tries = [
+      ['alle apparaten', { acceptAllDevices: true, optionalServices: full }],
+      ['alle apparaten (kort)', { acceptAllDevices: true, optionalServices: full.slice(0, 3) }],
+      ['alle apparaten (zonder diensten)', { acceptAllDevices: true }],
+    ];
+    if (!showAll) tries.unshift(['vLinker-filter', { filters: [{ namePrefix: 'vLink' }, { namePrefix: 'VLINK' }, { namePrefix: 'OBD' }], optionalServices: full }]);
+    const errs = [];
+    for (const [label, opts] of tries) {
+      try {
+        const dev = await navigator.bluetooth.requestDevice(opts);
+        BleAdapter.lastPick = label;
+        return dev;
+      } catch (e) {
+        if (isCancel(e)) throw e;
+        errs.push(label + ': ' + errText(e));
+      }
+    }
+    throw new Error('Bluetooth-fout. Stuur deze tekst door:\n' + errs.join('\n'));
   }
 
   constructor(device) {
@@ -480,7 +505,7 @@ class Car {
         await this.pollForever(my);
       } catch (e) {
         if (!this.running || my !== this.session) break;
-        this.set({ status: 'fout', message: (e && e.message) || String(e) });
+        this.set({ status: 'fout', message: (e && e.message) || errText(e) });
         try { await this.a.close(); } catch (x) {}
         await sleep(5000);
         if (this.running && my === this.session) this.set({ status: 'verbinden', message: 'Opnieuw verbinden…' });
@@ -765,7 +790,7 @@ let S = null, unit = loadStore('obd_unit', 'bar'), formFilled = false;
 const P = b => unit === 'psi' ? nl(b * 14.5038, 1) : nl(b, 2);
 const dateNl = iso => new Date(iso).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-async function act(fn) { try { await fn(); } catch (x) { alert(x.message || x); } render(); }
+async function act(fn) { try { await fn(); } catch (x) { alert(x && x.message ? x.message : errText(x)); } render(); }
 
 function statusFor(bar, t) { if (bar == null) return 'none'; const d = Math.abs(bar - t); return d <= 0.2 ? 'ok' : d <= 0.5 ? 'warn' : 'bad'; }
 const WHEELS = [{ x: 118, y: 105, a: 'end', n: 'Links voor' }, { x: 302, y: 105, a: 'start', n: 'Rechts voor' }, { x: 118, y: 265, a: 'end', n: 'Links achter' }, { x: 302, y: 265, a: 'start', n: 'Rechts achter' }];
@@ -923,7 +948,7 @@ function render() {
 async function connectBle(showAll) {
   let dev;
   try { dev = await BleAdapter.pick(showAll); }
-  catch (e) { if (e && e.name !== 'NotFoundError') alert(e.message || e); return; } // NotFoundError = keuzelijst weggeklikt
+  catch (e) { if (!isCancel(e)) alert(e && e.message ? e.message : errText(e)); return; } // geannuleerd = keuzelijst weggeklikt
   car.start(new BleAdapter(dev), false);
   dev.addEventListener('gattserverdisconnected', () => { if (car.running) car.set({ status: 'fout', message: 'Verbinding verbroken, opnieuw proberen…' }); });
 }
