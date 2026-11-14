@@ -51,13 +51,30 @@ pre{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 
 @media(prefers-reduced-motion:reduce){.gv{transition:none}}
 [hidden]{display:none!important}a{color:var(--accent)}
 .pill:not(.ok):not(.warn):not(.bad){color:var(--mute)}
+
+:root{--tile:#fff}
+.sticky{position:sticky;top:0;z-index:10;background:var(--bg);padding-top:env(safe-area-inset-top);box-shadow:0 1px 0 var(--line)}
+.jump{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px;-webkit-overflow-scrolling:touch}
+.jump a{flex:none;text-decoration:none;font-weight:600;font-size:14px;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.card{scroll-margin-top:150px}
+button{min-height:40px}
+.dtc{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px}.dtc .code{flex:none;margin:0}
+.freeze{border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
+ul.mon{list-style:none;padding:0;margin:0}ul.mon li{padding:3px 0}
+.tile,pre,input,.seg button,select,textarea{background:var(--tile)!important;color:var(--ink)}
+.seg button.on{background:var(--ink)!important;color:var(--bg)!important}
+@media(prefers-color-scheme:dark){
+:root{--bg:#0F161D;--card:#18222C;--ink:#E6EDF3;--mute:#93A1AD;--line:#2C3A47;--accent:#5EA0EA;--ok:#3CC08F;--warn:#E3A93B;--bad:#F06A60;--none:#55636F;--tile:#1E2A35}
+.note{background:#2A2414}button{color:#0F161D}button.ghost{color:var(--accent)}button:disabled{color:#C7D0D8}
+}
 </style></head><body>
-<header class="top"><h1>Mazda CX-5<small>diagnose · v2</small></h1>
+<div class="sticky"><header class="top"><h1>Mazda CX-5<small>diagnose · v3</small></h1>
 <div class="row"><div id="pill" class="pill">Niet verbonden</div>
 <button id="connBtn">Verbinden</button><button id="demoBtn" class="ghost">Demo</button><button id="stopBtn" class="ghost" hidden>Verbreken</button></div></header>
 <div id="connHelp" class="small mute" style="max-width:1120px;margin:-8px auto 12px;padding:0 28px">
+<nav class="jump"><a href="#tpmsCard">Banden</a><a href="#accuCard">Accu</a><a href="#liveCard">Live</a><a href="#dtcCard">Storingen</a><a href="#apkCard">APK</a></nav>
 <a href="#" id="allLink">vLinker niet in de lijst? Toon alle apparaten</a>
-<div id="noBt" class="note" hidden>Deze browser kan geen Bluetooth gebruiken. Open deze pagina op je iPhone in <b>Bluefy</b>, of op je Mac in <b>Chrome</b>. De demo werkt wel overal.</div></div>
+<div id="noBt" class="note" hidden>Deze browser kan geen Bluetooth gebruiken. Open deze pagina op je iPhone in <b>Bluefy</b>, of op je Mac in <b>Chrome</b>. De demo werkt wel overal.</div></div></div>
 <main>
 
 <section class="card" id="tpmsCard">
@@ -94,16 +111,20 @@ pre{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 
 </section>
 
 <div class="cols">
-  <section class="card"><h2>Live</h2>
+  <section class="card" id="liveCard"><div class="row between"><h2>Live</h2><button id="pauseBtn" class="ghost">Pauzeren</button></div>
+    <div id="livePausedNote" class="small mute" hidden>Live gegevens staan op pauze. Bandenspanning, accu en storingen werken gewoon.</div>
     <div class="gauges" id="gauges"></div>
     <div class="tiles" id="tiles"></div>
     <div id="spark" style="margin-top:14px"></div>
   </section>
   <div style="display:grid;gap:20px;align-content:start">
-    <section class="card"><div class="row between"><h2>Storingscodes</h2><button id="dtcBtn" class="ghost">Uitlezen</button></div>
+    <section class="card" id="dtcCard"><div class="row between"><h2>Storingscodes</h2><button id="dtcBtn" class="ghost">Uitlezen</button></div>
       <div id="dtcOut" class="mute" style="margin-top:12px">Nog niet uitgelezen.</div></section>
     <section class="card"><div class="row between"><h2>Rit</h2><button id="tripReset" class="ghost">Nulstellen</button></div>
       <div class="tiles" id="tripTiles" style="margin-top:12px"></div><div id="tripNote" class="small mute" style="margin-top:8px"></div></section>
+    <section class="card" id="apkCard"><div class="row between"><h2>APK-check</h2><button id="apkBtn" class="ghost">Controleren</button></div>
+      <p class="small mute" style="margin:6px 0 10px">De auto test zichzelf continu op uitstoot. Een brandend storingslampje is bij de APK meestal een afkeurpunt, en tests die nog niet klaar zijn kunnen vragen oproepen.</p>
+      <div id="apkOut"></div></section>
     <section class="card"><h2>Auto</h2><dl id="info"></dl></section>
   </div>
 </div>
@@ -119,7 +140,7 @@ pre{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 
   <div id="swOut" class="small" style="margin-top:10px"></div>
 </details></section>
 
-<section class="card"><details><summary>Instellingen bandenspanning</summary>
+<section class="card"><details><summary>Instellingen</summary>
   <p class="small mute">Deze waarden zijn een aanname op basis van een andere Mazda en moeten in de auto bevestigd worden. Meet één band ook met een gewone bandenspanningsmeter: wijkt de uitkomst af, pas dan de omrekenfactor aan. Pomp je één band extra op, dan zie je welke positie bij welke PID hoort.</p>
   <form id="setForm" class="form">
     <label for="sH">Header</label><input id="sH" class="num">
@@ -128,6 +149,7 @@ pre{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 
     <label for="sK">kPa per eenheid</label><input id="sK" class="num" type="number" step="0.001">
     <label for="sO">Correctie (kPa)</label><input id="sO" class="num" type="number" step="0.1">
     <label for="sF">Brandstof</label><select id="sF" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px"><option>benzine</option><option>diesel</option><option>anders</option></select>
+    <label for="sD">Wachten na verbinden (s)</label><div><input id="sD" class="num" type="number" min="0" max="60"> <span class="small mute">Geeft CarPlay de tijd om op te starten. 0 = niet wachten.</span></div>
     <label for="sC">Eigen waarden</label><div><textarea id="sC" rows="5" style="width:100%;font:13px ui-monospace,Menlo,monospace;padding:8px;border:1px solid var(--line);border-radius:8px" spellcheck="false"></textarea>
     <div class="small mute">Eén regel per waarde: naam; header; PID; bytes; schaal; offset; eenheid; groep (accu of overig). De accu-SOC komt van een Mazda6 en is voor jouw auto nog niet bevestigd: vergelijk met BATT_SOC in FORScan Lite.</div></div>
     <span></span><div class="row"><button>Opslaan</button><span id="setMsg" class="small"></span></div>
@@ -150,6 +172,7 @@ const DEFAULT_SETTINGS = {
   tpms_offset_kpa: 0.0,
   target_bar: 2.3,
   brandstof: 'benzine',
+  start_delay_s: 10,   // even wachten na verbinden, zodat CarPlay/het infotainment rustig kan opstarten
   custom: [
     { naam: 'Accu laadtoestand (SOC)', header: '7E0', pid: '4028', bytes: 1, schaal: 1.0, offset: 0.0, eenheid: '%', groep: 'accu' },
   ],
@@ -252,6 +275,133 @@ function assemble(text) {
   }
   return (multi.length ? [multi.join('')] : []).concat(singles);
 }
+// ---------------------------------------------------------------------------
+// Uitleg bij storingscodes. Ernst: 1 = rustig, 2 = binnenkort laten nakijken, 3 = direct aandacht.
+// ---------------------------------------------------------------------------
+const DTC_INFO = {
+  P0010: ['Nokkenasverstelling (A, bank 1): fout in het stuurcircuit', 2],
+  P0011: ['Nokkenasverstelling (A, bank 1): te ver vervroegd', 2],
+  P0012: ['Nokkenasverstelling (A, bank 1): te ver vertraagd', 2],
+  P0016: ['Krukas- en nokkenasstand komen niet overeen (bank 1)', 3],
+  P0030: ['Verwarming lambdasonde vóór katalysator: stuurcircuit', 1],
+  P0087: ['Brandstofdruk in de rail te laag', 3],
+  P0088: ['Brandstofdruk in de rail te hoog', 3],
+  P0101: ['Luchtmassameter: waarde past niet bij de situatie', 2],
+  P0102: ['Luchtmassameter: signaal te laag', 2],
+  P0103: ['Luchtmassameter: signaal te hoog', 2],
+  P0106: ['Inlaatdruksensor (MAP): waarde past niet bij de situatie', 2],
+  P0107: ['Inlaatdruksensor (MAP): signaal te laag', 2],
+  P0108: ['Inlaatdruksensor (MAP): signaal te hoog', 2],
+  P0111: ['Inlaatluchttemperatuursensor: waarde past niet bij de situatie', 1],
+  P0112: ['Inlaatluchttemperatuursensor: signaal te laag', 1],
+  P0113: ['Inlaatluchttemperatuursensor: signaal te hoog', 1],
+  P0116: ['Koelvloeistoftemperatuursensor: waarde past niet bij de situatie', 2],
+  P0117: ['Koelvloeistoftemperatuursensor: signaal te laag', 2],
+  P0118: ['Koelvloeistoftemperatuursensor: signaal te hoog', 2],
+  P0121: ['Gasklepsensor: waarde past niet bij de situatie', 2],
+  P0122: ['Gasklepsensor: signaal te laag', 2],
+  P0123: ['Gasklepsensor: signaal te hoog', 2],
+  P0125: ['Motor wordt te langzaam warm voor normale regeling', 1],
+  P0128: ['Koelvloeistof blijft onder thermostaattemperatuur (thermostaat?)', 1],
+  P0130: ['Lambdasonde vóór katalysator: circuitfout', 2],
+  P0131: ['Lambdasonde vóór katalysator: spanning te laag', 2],
+  P0132: ['Lambdasonde vóór katalysator: spanning te hoog', 2],
+  P0133: ['Lambdasonde vóór katalysator reageert te traag', 2],
+  P0134: ['Lambdasonde vóór katalysator: geen activiteit', 2],
+  P0135: ['Verwarming lambdasonde vóór katalysator: circuitfout', 1],
+  P0136: ['Lambdasonde ná katalysator: circuitfout', 1],
+  P0137: ['Lambdasonde ná katalysator: spanning te laag', 1],
+  P0138: ['Lambdasonde ná katalysator: spanning te hoog', 1],
+  P0139: ['Lambdasonde ná katalysator reageert te traag', 1],
+  P0141: ['Verwarming lambdasonde ná katalysator: circuitfout', 1],
+  P0171: ['Mengsel te arm (bank 1): vaak een luchtlek of vervuilde luchtmassameter', 2],
+  P0172: ['Mengsel te rijk (bank 1)', 2],
+  P0191: ['Brandstofdruksensor rail: waarde past niet bij de situatie', 2],
+  P0201: ['Injector cilinder 1: circuitfout', 3],
+  P0202: ['Injector cilinder 2: circuitfout', 3],
+  P0203: ['Injector cilinder 3: circuitfout', 3],
+  P0204: ['Injector cilinder 4: circuitfout', 3],
+  P0217: ['Motor oververhit', 3],
+  P0219: ['Motor te hoog toerental (overtoeren)', 2],
+  P0234: ['Turbodruk te hoog', 3],
+  P0299: ['Turbodruk te laag', 2],
+  P0300: ['Willekeurige ontstekingsoverslag (motor loopt onrustig)', 3],
+  P0301: ['Ontstekingsoverslag cilinder 1', 3],
+  P0302: ['Ontstekingsoverslag cilinder 2', 3],
+  P0303: ['Ontstekingsoverslag cilinder 3', 3],
+  P0304: ['Ontstekingsoverslag cilinder 4', 3],
+  P0325: ['Klopsensor: circuitfout', 2],
+  P0327: ['Klopsensor: signaal te laag', 2],
+  P0328: ['Klopsensor: signaal te hoog', 2],
+  P0335: ['Krukassensor: circuitfout (motor kan afslaan)', 3],
+  P0340: ['Nokkenassensor: circuitfout', 3],
+  P0400: ['Uitlaatgasrecirculatie (EGR): doorstroming klopt niet', 2],
+  P0401: ['Uitlaatgasrecirculatie (EGR): te weinig doorstroming', 2],
+  P0420: ['Katalysator werkt onder de grens (bank 1)', 2],
+  P0421: ['Voorkatalysator werkt onder de grens (bank 1)', 2],
+  P0440: ['Benzinedampsysteem (EVAP): storing', 1],
+  P0441: ['Benzinedampsysteem: onjuiste spoeldoorstroming', 1],
+  P0442: ['Benzinedampsysteem: klein lek (tankdop goed dicht?)', 1],
+  P0443: ['Benzinedampsysteem: spoelklep circuitfout', 1],
+  P0455: ['Benzinedampsysteem: groot lek (tankdop goed dicht?)', 1],
+  P0456: ['Benzinedampsysteem: zeer klein lek', 1],
+  P0461: ['Brandstofniveausensor: waarde past niet bij de situatie', 1],
+  P0480: ['Koelventilator: stuurcircuit', 3],
+  P0500: ['Snelheidssensor voertuig: storing', 2],
+  P0505: ['Stationair toerental: regeling werkt niet goed', 2],
+  P0506: ['Stationair toerental lager dan verwacht', 1],
+  P0507: ['Stationair toerental hoger dan verwacht', 1],
+  P0562: ['Boordspanning te laag (accu/dynamo)', 2],
+  P0563: ['Boordspanning te hoog (laadregeling)', 2],
+  P0600: ['Communicatiefout tussen regeleenheden', 2],
+  P0601: ['Motorregeleenheid: interne geheugenfout', 3],
+  P0603: ['Motorregeleenheid: geheugen gewist (vaak na accu los)', 1],
+  P0606: ['Motorregeleenheid: processorfout', 3],
+  P0607: ['Motorregeleenheid: prestatie', 3],
+  P0620: ['Dynamo: stuurcircuit', 2],
+  P0700: ['Versnellingsbak meldt een storing (lees de bak apart uit)', 2],
+  P0715: ['Versnellingsbak: turbinetoerentalsensor', 2],
+  P0720: ['Versnellingsbak: uitgaande toerentalsensor', 2],
+  P0730: ['Versnellingsbak: verkeerde overbrengingsverhouding', 3],
+  P0741: ['Versnellingsbak: lock-up koppelomvormer werkt niet goed', 2],
+  P2096: ['Brandstofcorrectie na katalysator: te arm (bank 1)', 2],
+  P2097: ['Brandstofcorrectie na katalysator: te rijk (bank 1)', 2],
+  P2187: ['Mengsel te arm bij stationair (bank 1)', 2],
+  P2188: ['Mengsel te rijk bij stationair (bank 1)', 2],
+  P2195: ['Lambdasonde vóór katalysator blijft op arm staan', 2],
+  P2196: ['Lambdasonde vóór katalysator blijft op rijk staan', 2],
+  P2227: ['Luchtdruksensor (barometrisch): waarde past niet bij de situatie', 1],
+  P2A00: ['Lambdasonde vóór katalysator: bereik/prestatie', 2],
+  U0100: ['Geen communicatie met de motorregeleenheid', 3],
+  U0101: ['Geen communicatie met de versnellingsbakregeling', 3],
+  U0121: ['Geen communicatie met de ABS-regeling', 3],
+  U0155: ['Geen communicatie met het instrumentenpaneel', 2],
+};
+const DTC_GROUP = {
+  P00: 'Lucht/brandstof en hulpemissie', P01: 'Lucht- en brandstofmeting', P02: 'Brandstof en injectie', P03: 'Ontsteking of overslag',
+  P04: 'Emissieregeling', P05: 'Snelheid, stationair en ingangen', P06: 'Regeleenheid en uitgangen', P07: 'Versnellingsbak', P08: 'Versnellingsbak',
+  P09: 'Versnellingsbak', P0A: 'Hybride-aandrijving', P2: 'Aandrijflijn (algemeen)', P3: 'Aandrijflijn (algemeen)',
+};
+function describeDtc(code) {
+  if (DTC_INFO[code]) return { tekst: DTC_INFO[code][0], ernst: DTC_INFO[code][1], bekend: true };
+  const sys = { P: 'Motor/aandrijving', C: 'Chassis (remmen, ophanging)', B: 'Carrosserie', U: 'Netwerk/communicatie' }[code[0]] || 'Onbekend';
+  const merk = code[1] === '1' || code[1] === '3' ? ' – merkspecifieke code van Mazda' : '';
+  const groep = code[0] === 'P' ? (DTC_GROUP[code.slice(0, 3)] || DTC_GROUP[code.slice(0, 2)] || sys) : sys;
+  return { tekst: groep + merk, ernst: 2, bekend: false };
+}
+const dtcFromBytes = (b0, b1) => 'PCBU'[b0 >> 6] + ((b0 >> 4) & 3) + (b0 & 0xF).toString(16).toUpperCase() + b1.toString(16).padStart(2, '0').toUpperCase();
+
+// Gereedheidstests (PID 01). Bitnamen voor benzine (vonk) en diesel (compressie).
+const MON_CONT = ['Overslagdetectie', 'Brandstofsysteem', 'Overige onderdelen'];
+const MON_SPARK = ['Katalysator', 'Verwarmde katalysator', 'Benzinedampsysteem (EVAP)', 'Secundaire lucht', 'Airco-koelmiddel', 'Lambdasondes', 'Verwarming lambdasondes', 'Uitlaatgasrecirculatie (EGR)'];
+const MON_COMP = ['NMHC-katalysator', 'NOx-nabehandeling', null, 'Turbodruk', null, 'Uitlaatgassensor', 'Roetfilter', 'EGR / variabele kleptiming'];
+function decodeReadiness(d) {
+  const mil = !!(d[0] & 0x80), count = d[0] & 0x7F, diesel = !!(d[1] & 0x08), tests = [];
+  MON_CONT.forEach((n, i) => { if (d[1] & (1 << i)) tests.push({ naam: n, klaar: !(d[1] & (1 << (i + 4))) }); });
+  (diesel ? MON_COMP : MON_SPARK).forEach((n, i) => { if (n && (d[2] & (1 << i))) tests.push({ naam: n, klaar: !(d[3] & (1 << i)) }); });
+  return { mil, aantal: count, diesel, tests };
+}
+
 function decodeDtcs(text, service) {
   const codes = [];
   for (const d of assemble(text)) {
@@ -415,7 +565,7 @@ class DemoAdapter {
   async connect() { await sleep(500); return 'Demo-adapter'; }
   async close() {}
   static _frame(pid, data) { return '7E8' + (2 + data.length).toString(16).padStart(2, '0').toUpperCase() + '41' + pid + bytesToHex(data); }
-  _live(pid) {
+  _liveData(pid) {
     const t = Date.now() / 1000, engine = this._phase()[1];
     const speed = engine ? Math.max(0, 55 + 45 * Math.sin(t / 15)) : 0;
     const rpm = engine ? 750 + speed * 32 + 150 * Math.sin(t / 3) : 0;
@@ -428,8 +578,9 @@ class DemoAdapter {
       '0B': [Math.floor(30 + speed * 0.4)], '0E': [Math.floor((12 + speed / 10 + 64) * 2)],
       '06': [Math.floor(101.5 * 1.28)], '07': [Math.floor(98 * 1.28)], '1F': two(Math.floor(t - this.t0)),
     };
-    return vals[pid] ? DemoAdapter._frame(pid, vals[pid]) : 'NO DATA';
+    return vals[pid] || null;
   }
+  _live(pid) { const d = this._liveData(pid); return d ? DemoAdapter._frame(pid, d) : 'NO DATA'; }
   async send(cmd) {
     await sleep(40);
     const c = cmd.toUpperCase().replace(/ /g, '');
@@ -442,6 +593,12 @@ class DemoAdapter {
     }
     const fixed = { '0100': '7E8064100FE3FA813', '0120': '7E806412000020001', '0140': '7E806414044000010', '0160': '7E806416000000000', '03': '43010133', '07': '4700' };
     if (fixed[c]) return fixed[c];
+    if (c === '0101') return '7E806410181076504';           // lampje aan, 1 code, EVAP-test nog niet klaar
+    if (c === '020200') return '7E8054202000133';          // momentopname hoort bij P0133
+    if (c.startsWith('02') && c.length === 6) {
+      const pid = c.slice(2, 4), d = this._liveData(pid);
+      return d ? '7E8' + (3 + d.length).toString(16).padStart(2, '0').toUpperCase() + '42' + pid + '00' + bytesToHex(d) : 'NO DATA';
+    }
     if (c.startsWith('01') && c.length === 4) return this._live(c.slice(2));
     if (c === '0902') {
       const payload = [0x49, 0x02, 0x01, ...Array.from(this.VIN, ch => ch.charCodeAt(0))];
@@ -482,7 +639,8 @@ class Car {
       voltage: null, protocol: null, vin: null, supported: [], live: {},
       tpms: { gemeten: null, bezig: false, wielen: [] },
       tpms_history: loadStore(KEY_HISTORY, []),
-      dtc: { gelezen: null, actief: [], wachtend: [], ruw: '' },
+      dtc: { gelezen: null, actief: [], wachtend: [], ruw: '', freeze: null },
+      apk: null, wachten: 0,
       sweep: { bezig: false, klaar: 0, totaal: 0, treffers: [] },
       custom: {},
       accu_test: { bezig: false, klaar: 0, totaal: 0, samples: [], uitkomst: null },
@@ -525,6 +683,13 @@ class Car {
     await this.lock.run(async () => {
       for (const cmd of ['ATZ', 'ATE0', 'ATL0', 'ATS0', 'ATH1', 'ATSP6']) await this.send(cmd, cmd === 'ATZ' ? 12000 : 6000);
       this.set({ protocol: (await this.send('ATDP')).trim() || null });
+      const delay = this.state.demo ? 0 : Math.max(0, Math.min(60, parseInt(this.settings.start_delay_s, 10) || 0));
+      for (let s = delay; s > 0; s--) {
+        if (my !== this.session) throw new Error('Gestopt');
+        this.set({ message: `Even wachten (${s} s) zodat CarPlay rustig kan opstarten…`, wachten: s });
+        await sleep(1000);
+      }
+      this.set({ wachten: 0, message: 'Verbinden met de auto…' });
       let data;
       while (true) {
         if (my !== this.session) throw new Error('Gestopt');
@@ -548,6 +713,7 @@ class Car {
       this.set({ voltage: Car.volts(await this.send('ATRV')) });
     });
     this.set({ status: 'verbonden', message: '' });
+    await this.readReadiness().catch(() => {});
   }
 
   static volts(text) { const m = (text || '').match(/(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : null; }
@@ -571,6 +737,7 @@ class Car {
     const slow = order.filter(p => !fast.includes(p));
     let i = 0;
     while (this.running && my === this.session) {
+      if (this.livePaused) { this.tripT = null; await sleep(500); continue; }
       const batch = fast.concat(slow.length ? [slow[i % slow.length]] : []);
       i++;
       await this.lock.run(async () => {
@@ -690,11 +857,51 @@ class Car {
       try { actief = await this.send('03', 8000); wacht = await this.send('07', 8000); }
       finally { await this.send('ATH1'); }
     });
+    const freeze = await this.readFreeze();
     this.set({ dtc: {
-      gelezen: new Date().toISOString(), actief: decodeDtcs(actief, '43'), wachtend: decodeDtcs(wacht, '47'),
+      gelezen: new Date().toISOString(), actief: decodeDtcs(actief, '43'), wachtend: decodeDtcs(wacht, '47'), freeze,
       ruw: `03: ${actief || '(geen antwoord)'} | 07: ${wacht || '(geen antwoord)'}`.replace(/\n/g, ' '),
     } });
+    await this.readReadiness().catch(() => {});
   }
+
+  // Momentopname (mode 02): wat de motor deed toen de storing ontstond.
+  async readFreeze() {
+    return this.lock.run(async () => {
+      const d = payloadAfter(await this.send('020200', 4000), '420200')[1];
+      if (!d || d.length < 2 || (d[0] === 0 && d[1] === 0)) return null;
+      const out = { code: dtcFromBytes(d[0], d[1]), waarden: [] };
+      for (const pid of ['0C', '0D', '05', '04', '11', '0F', '0B', '06', '07', '1F']) {
+        const data = payloadAfter(await this.send('02' + pid + '00', 3000), '42' + pid + '00')[1];
+        if (!data || data.length < (LIVE_NEEDS[pid] || 1)) continue;
+        const [naam, eenheid, fn] = LIVE[pid];
+        out.waarden.push({ naam, eenheid, waarde: round2(fn(data)) });
+      }
+      return out;
+    });
+  }
+
+  // APK-check: gereedheidstests en tellers sinds het wissen van codes.
+  async readReadiness() {
+    this.needConnected();
+    const res = await this.lock.run(async () => {
+      const d = payloadAfter(await this.send('0101', 4000), '4101')[1];
+      if (!d || d.length < 4) return { fout: 'De auto gaf geen antwoord op de gereedheidsvraag.' };
+      const r = decodeReadiness(d), extra = [];
+      const two = b => b[0] * 256 + b[1];
+      for (const [pid, naam, eenheid, fn] of [
+        ['31', 'Afstand sinds codes gewist', 'km', two], ['30', 'Warmloopcycli sinds codes gewist', '', b => b[0]],
+        ['4E', 'Motortijd sinds codes gewist', 'min', two], ['21', 'Afstand met storingslampje aan', 'km', two], ['4D', 'Motortijd met storingslampje aan', 'min', two],
+      ]) {
+        if (!this.supported.has(parseInt(pid, 16))) continue;
+        const v = payloadAfter(await this.send('01' + pid, 4000), '41' + pid)[1];
+        if (v && v.length >= (fn === two ? 2 : 1)) extra.push({ naam, eenheid, waarde: fn(v) });
+      }
+      return { ...r, extra };
+    });
+    this.set({ apk: { ...res, gelezen: new Date().toISOString() } });
+  }
+  setLivePaused(p) { this.livePaused = !!p; }
 
   static clean(cmd) { return String(cmd).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20); }
   static allowed(c) {
@@ -769,6 +976,11 @@ class Car {
       s.brandstof = nw.brandstof;
     }
     if ('custom_tekst' in nw) s.custom = parseCustom(nw.custom_tekst);
+    if ('start_delay_s' in nw) {
+      const v = parseInt(nw.start_delay_s, 10);
+      if (isNaN(v) || v < 0 || v > 60) throw new Error('Wachttijd na verbinden is 0 tot 60 seconden.');
+      s.start_delay_s = v;
+    }
     if ('tpms_bytes' in nw) {
       const v = parseInt(nw.tpms_bytes, 10);
       if (![1, 2].includes(v)) throw new Error('Aantal bytes is 1 of 2.');
@@ -798,9 +1010,9 @@ const WHEELS = [{ x: 118, y: 105, a: 'end', n: 'Links voor' }, { x: 302, y: 105,
 function renderCar() {
   const t = S.settings.target_bar, w = S.tpms.wielen || [];
   let g = `<svg viewBox="0 0 420 360" role="img" aria-label="Bandenspanning per wiel">
-  <path d="M170 40 C195 22 225 22 250 40 L262 120 L264 260 L254 320 C230 342 190 342 166 320 L156 260 L158 120 Z" fill="#fff" stroke="#12202D" stroke-width="2"/>
-  <path d="M174 120 L246 120 L240 152 L180 152 Z M178 262 L242 262 L248 292 L172 292 Z" fill="#E7EBEE" stroke="#12202D" stroke-width="1.5"/>
-  <path d="M210 60 L210 108 M210 162 L210 252" stroke="#CBD3DA" stroke-width="1.5"/>`;
+  <path d="M170 40 C195 22 225 22 250 40 L262 120 L264 260 L254 320 C230 342 190 342 166 320 L156 260 L158 120 Z" style="fill:var(--card);stroke:var(--ink)" stroke-width="2"/>
+  <path d="M174 120 L246 120 L240 152 L180 152 Z M178 262 L242 262 L248 292 L172 292 Z" style="fill:var(--bg);stroke:var(--ink)" stroke-width="1.5"/>
+  <path d="M210 60 L210 108 M210 162 L210 252" style="stroke:var(--line)" stroke-width="1.5"/>`;
   WHEELS.forEach((p, i) => {
     const bar = w[i] ? w[i].bar : null, st = statusFor(bar, t), left = p.a === 'end';
     const wx = left ? 142 : 262, cy = p.y;
@@ -859,11 +1071,36 @@ function renderDtc() {
   if (!d.gelezen) return;
   let h = `<div class="small mute" style="margin-bottom:10px">Uitgelezen ${dateNl(d.gelezen)}</div>`;
   if (!d.actief.length && !d.wachtend.length) h += '<p style="margin:0">Geen storingscodes gevonden.</p>';
-  h += d.actief.map(c => `<span class="code">${c}</span>`).join('') + d.wachtend.map(c => `<span class="code pend">${c}</span>`).join('');
-  if (d.wachtend.length) h += '<div class="small mute">Oranje: wachtende codes, nog niet bevestigd.</div>';
-  if (d.actief.length || d.wachtend.length) h += '<div class="small mute" style="margin-top:6px">Zoek de code op (bijvoorbeeld "P0133 Mazda") voor de betekenis. Deze app wist niets.</div>';
+  const ERNST = { 1: ['ok', 'Geen haast'], 2: ['warn', 'Binnenkort laten nakijken'], 3: ['bad', 'Direct aandacht'] };
+  const row = (c, pend) => {
+    const info = describeDtc(c), e = ERNST[info.ernst];
+    return `<div class="dtc"><span class="code${pend ? ' pend' : ''}">${c}</span><div><div>${esc(info.tekst)}</div>
+      <div class="small"><span style="color:var(--${e[0]})">● ${e[1]}</span>${pend ? ' · <span class="mute">wachtend, nog niet bevestigd</span>' : ''}${info.bekend ? '' : ' · <span class="mute">globale uitleg</span>'}</div></div></div>`;
+  };
+  h += d.actief.map(c => row(c, false)).join('') + d.wachtend.map(c => row(c, true)).join('');
+  if (d.freeze) {
+    h += `<div class="freeze"><b>Momentopname bij ${esc(d.freeze.code)}</b><div class="small mute">Zo stond de motor erbij toen de storing werd vastgelegd.</div><div class="tiles" style="margin-top:8px">` +
+      d.freeze.waarden.map(w => `<div class="tile"><b>${fmtLive(w.waarde, w.eenheid)} <small>${w.eenheid}</small></b><span>${w.naam}</span></div>`).join('') + '</div></div>';
+  }
+  if (d.actief.length || d.wachtend.length) h += '<div class="small mute" style="margin-top:8px">De uitleg is een indicatie. Zoek bij twijfel de code op (bijvoorbeeld "P0133 Mazda CX-5") of vraag de garage. Deze app wist niets.</div>';
   h += `<details style="margin-top:10px"><summary style="font-size:13px;font-weight:500">Ruw antwoord</summary><pre>${esc(d.ruw)}</pre></details>`;
   const box = $('#dtcOut'); if (box.dataset.k !== d.gelezen) { box.className = ''; box.innerHTML = h; box.dataset.k = d.gelezen; }
+}
+function renderApk() {
+  const A = S.apk; $('#apkBtn').disabled = S.status !== 'verbonden';
+  const box = $('#apkOut');
+  if (!A) { box.innerHTML = '<span class="mute">Wordt gecontroleerd zodra de auto verbonden is.</span>'; return; }
+  const key = A.gelezen; if (box.dataset.k === key) return; box.dataset.k = key;
+  if (A.fout) { box.innerHTML = `<div class="err">${esc(A.fout)}</div>`; return; }
+  const open = A.tests.filter(t => !t.klaar);
+  let h = `<div class="small mute" style="margin-bottom:8px">Gecontroleerd ${dateNl(A.gelezen)}</div>`;
+  if (A.mil) h += `<div class="note" style="border-color:var(--bad);background:transparent;margin:0 0 10px">Het storingslampje staat aan (${A.aantal} code${A.aantal === 1 ? '' : 's'}). Bij de APK is dat meestal een afkeurpunt.</div>`;
+  h += open.length
+    ? `<p style="margin:0 0 8px"><b style="color:var(--warn)">${open.length} test${open.length === 1 ? '' : 's'} nog niet klaar.</b> Dat is normaal na een accuwissel of na het wissen van codes. Rij een paar dagen normaal (stad en snelweg), dan worden ze vanzelf klaar.</p>`
+    : (A.mil ? '' : '<p style="margin:0 0 8px"><b style="color:var(--ok)">Alle zelftests zijn klaar.</b> Vanuit de uitstoottests van de auto is er geen bezwaar.</p>');
+  h += '<ul class="mon">' + A.tests.map(t => `<li><span style="color:var(--${t.klaar ? 'ok' : 'warn'})">${t.klaar ? '✓' : '…'}</span> ${t.naam}${t.klaar ? '' : ' <span class="mute small">nog niet klaar</span>'}</li>`).join('') + '</ul>';
+  if (A.extra && A.extra.length) h += '<dl>' + A.extra.map(x => `<dt>${x.naam}</dt><dd>${nl(x.waarde, 0)} ${x.eenheid}</dd>`).join('') + '</dl>';
+  box.innerHTML = h;
 }
 function renderInfo() {
   const rows = [['Adapter', S.demo ? 'Demo (geen echte auto)' : S.adapter_name], ['Protocol', S.protocol], ['VIN', S.vin], ['Ondersteunde live-gegevens', S.supported && S.supported.length ? S.supported.length + " standaard-PID's" : null], ['Accuspanning', S.voltage != null ? nl(S.voltage, 1) + ' V' : null]];
@@ -884,7 +1121,7 @@ function renderAccu() {
   const zones = run ? [[10, 13.0, 'bad'], [13.0, 13.4, 'warn'], [13.4, 14.9, 'ok'], [14.9, 15.5, 'bad']] : [[10, 12.0, 'bad'], [12.0, 12.5, 'warn'], [12.5, 15.5, 'ok']];
   const X = x => 10 + (x - 10) / 5.5 * 580;
   let b = '<svg viewBox="0 0 600 40" style="width:100%" aria-hidden="true">' + zones.map(z => `<rect x="${X(z[0])}" y="14" width="${X(z[1]) - X(z[0])}" height="12" style="fill:var(--${z[2]})" opacity=".85"/>`).join('');
-  if (v != null) { const m = X(Math.max(10, Math.min(15.5, v))); b += `<path d="M${m} 11 l-6 -10 h12 z" fill="#12202D"/>`; }
+  if (v != null) { const m = X(Math.max(10, Math.min(15.5, v))); b += `<path d="M${m} 11 l-6 -10 h12 z" style="fill:var(--ink)"/>`; }
   b += [10, 11, 12, 13, 14, 15].map(n => `<text x="${X(n)}" y="39" font-size="11" fill="#5B6A77" text-anchor="middle">${n}</text>`).join('') + '</svg>';
   $('#vBar').innerHTML = b;
   let t = 'Nog geen meting.';
@@ -906,7 +1143,7 @@ function renderAccu() {
     $('#accuChart').innerHTML = `<svg viewBox="0 0 600 130" style="width:100%"><line x1="10" x2="590" y1="${Y(12.5)}" y2="${Y(12.5)}" stroke="#CBD3DA" stroke-dasharray="4 4"/><polyline fill="none" stroke="#1D5FA8" stroke-width="2" points="${A.samples.map(s => (10 + s[0] / tot * 580) + ',' + Y(s[1])).join(' ')}"/><text x="10" y="126" font-size="11" fill="#5B6A77">0 s</text><text x="590" y="126" font-size="11" fill="#5B6A77" text-anchor="end">${tot} s</text><text x="590" y="${Y(12.5) - 4}" font-size="11" fill="#5B6A77" text-anchor="end">12,5 V</text></svg>`;
   } else $('#accuChart').innerHTML = '';
   const R = A.uitkomst;
-  $('#accuRes').innerHTML = R ? `<div class="note" style="border-color:var(--${R.oordeel === 'goed' ? 'ok' : R.oordeel === 'let op' ? 'warn' : 'bad'});background:#fff"><b>${R.oordeel === 'goed' ? 'Ziet er goed uit' : R.oordeel === 'let op' ? 'Let op' : R.oordeel === 'slecht' ? 'Laat dit controleren' : 'Onbekend'}</b><br>${R.regels.join('<br>')}</div>` : '';
+  $('#accuRes').innerHTML = R ? `<div class="note" style="border-color:var(--${R.oordeel === 'goed' ? 'ok' : R.oordeel === 'let op' ? 'warn' : 'bad'});background:transparent"><b>${R.oordeel === 'goed' ? 'Ziet er goed uit' : R.oordeel === 'let op' ? 'Let op' : R.oordeel === 'slecht' ? 'Laat dit controleren' : 'Onbekend'}</b><br>${R.regels.join('<br>')}</div>` : '';
 }
 function renderTrip() {
   const T = S.trip || {}, avg = T.min > 0.5 ? T.km / (T.min / 60) : null;
@@ -935,11 +1172,15 @@ function renderPill() {
 function fillForm() {
   const s = S.settings; if (formFilled || (document.activeElement && document.activeElement.closest && document.activeElement.closest('#setForm'))) return;
   $('#sH').value = s.tpms_header; $('#sP').value = s.tpms_pids.join(', '); $('#sB').value = s.tpms_bytes; $('#sK').value = s.tpms_kpa_per_count; $('#sO').value = s.tpms_offset_kpa; $('#sF').value = s.brandstof;
+  $('#sD').value = s.start_delay_s;
   $('#sC').value = (s.custom || []).map(c => [c.naam, c.header, c.pid, c.bytes, c.schaal, c.offset, c.eenheid, c.groep].join('; ')).join('\n'); formFilled = true;
 }
 function render() {
   S = car.snapshot();
-  renderPill(); renderTpms(); renderAccu(); renderLive(); renderTrip(); renderDtc(); renderInfo(); renderSweep(); fillForm();
+  renderPill(); renderTpms(); renderAccu(); renderLive(); renderTrip(); renderDtc(); renderApk(); renderInfo(); renderSweep(); fillForm();
+  $('#pauseBtn').textContent = car.livePaused ? 'Hervatten' : 'Pauzeren';
+  $('#pauseBtn').disabled = S.status !== 'verbonden';
+  $('#livePausedNote').hidden = !car.livePaused;
   if (document.activeElement !== $('#target')) $('#target').value = S.settings.target_bar;
   document.querySelectorAll('#unitSeg button').forEach(b => b.classList.toggle('on', b.dataset.u === unit));
 }
@@ -960,6 +1201,8 @@ $('#unitSeg').onclick = e => { const u = e.target.dataset.u; if (u) { unit = u; 
 $('#target').onchange = e => act(() => car.updateSettings({ target_bar: e.target.value }));
 $('#measure').onclick = () => act(() => car.measureTpms());
 $('#accuBtn').onclick = () => act(() => car.accuTest(30));
+$('#apkBtn').onclick = () => act(() => car.readReadiness());
+$('#pauseBtn').onclick = () => { car.setLivePaused(!car.livePaused); render(); };
 $('#tripReset').onclick = () => { car.resetTrip(); render(); };
 $('#dtcBtn').onclick = async () => { $('#dtcBtn').disabled = true; try { await car.readDtcs(); } catch (x) { $('#dtcOut').innerHTML = '<div class="err">' + esc(x.message) + '</div>'; } render(); };
 $('#conForm').onsubmit = async e => {
@@ -972,7 +1215,7 @@ $('#swForm').onsubmit = async e => { e.preventDefault(); try { await car.sweep($
 $('#setForm').onsubmit = e => {
   e.preventDefault(); const m = $('#setMsg');
   try {
-    car.updateSettings({ tpms_header: $('#sH').value, tpms_pids: $('#sP').value.split(/[ ,]+/).filter(Boolean), tpms_bytes: $('#sB').value, tpms_kpa_per_count: $('#sK').value, tpms_offset_kpa: $('#sO').value, brandstof: $('#sF').value, custom_tekst: $('#sC').value });
+    car.updateSettings({ tpms_header: $('#sH').value, tpms_pids: $('#sP').value.split(/[ ,]+/).filter(Boolean), tpms_bytes: $('#sB').value, tpms_kpa_per_count: $('#sK').value, tpms_offset_kpa: $('#sO').value, brandstof: $('#sF').value, start_delay_s: $('#sD').value, custom_tekst: $('#sC').value });
     m.style.color = 'var(--ok)'; m.textContent = 'Opgeslagen'; formFilled = false;
   } catch (x) { m.style.color = 'var(--bad)'; m.textContent = x.message; }
 };
