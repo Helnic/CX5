@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#E7EBEE">
+<title>CX-5 diagnose</title>
+<style>
+:root{--bg:#E7EBEE;--card:#F7F9FA;--ink:#12202D;--mute:#5B6A77;--line:#CBD3DA;--accent:#1D5FA8;--ok:#1B8A66;--warn:#B87800;--bad:#B3261E;--none:#9AA6B0;
+--num:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header.top{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:18px 28px;flex-wrap:wrap}
+h1{font:600 22px/1.2 var(--num);margin:0;letter-spacing:.2px}
+h1 small{font-weight:400;color:var(--mute);margin-left:8px;font-size:15px}
+h2{font:600 17px/1.3 var(--num);margin:0}
+.pill{padding:6px 14px;border-radius:99px;font-size:13.5px;background:var(--card);border:1px solid var(--line);max-width:100%}
+.pill.ok{border-color:var(--ok);color:var(--ok)}.pill.warn{border-color:var(--warn);color:var(--warn)}.pill.bad{border-color:var(--bad);color:var(--bad)}
+main{max-width:1120px;margin:0 auto;padding:0 20px 48px;display:grid;gap:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.row.between{justify-content:space-between}
+.mute{color:var(--mute)}.small{font-size:13px}
+button{font:inherit;font-weight:600;border:0;border-radius:9px;padding:9px 16px;background:var(--accent);color:#fff;cursor:pointer}
+button:hover{filter:brightness(1.08)}button:disabled{background:var(--none);cursor:default}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #8FB8E8;outline-offset:2px}
+input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);min-width:0}
+input.num{width:84px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{background:#fff;color:var(--mute);border-radius:0;padding:7px 14px;font-weight:500}.seg button.on{background:var(--ink);color:#fff}
+.hero-grid{display:grid;grid-template-columns:minmax(300px,1.1fr) minmax(260px,1fr);gap:24px;align-items:start;margin-top:8px}
+#car svg{width:100%;height:auto;display:block;max-height:420px}
+.wnum{font:600 34px var(--num)}.wcap{font:13px system-ui;fill:var(--mute)}.wname{font:12.5px system-ui;fill:var(--mute)}
+.note{padding:12px 14px;border-left:3px solid var(--warn);background:#FBF3E0;border-radius:0 8px 8px 0;margin:12px 0 0}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.gauge{position:relative;text-align:center}.gauge svg{width:100%;height:auto}
+.gt{fill:none;stroke:var(--line);stroke-width:12;stroke-linecap:round}.gv{fill:none;stroke:var(--accent);stroke-width:12;stroke-linecap:round;transition:stroke-dasharray .35s}
+.gn{font:600 30px var(--num);margin-top:-52px}.gl{font-size:13px;color:var(--mute);margin-top:2px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff}
+.tile b{display:block;font:600 22px var(--num)}.tile span{font-size:12.5px;color:var(--mute)}
+.code{display:inline-block;font:600 18px var(--num);padding:4px 12px;border:1px solid var(--bad);color:var(--bad);border-radius:8px;margin:0 8px 8px 0}
+.code.pend{border-color:var(--warn);color:var(--warn)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:12px 0 0}dt{color:var(--mute)}dd{margin:0;overflow-wrap:anywhere}
+details summary{cursor:pointer;font:600 17px var(--num);list-style:none}details summary::-webkit-details-marker{display:none}
+details summary::before{content:"+";display:inline-block;width:20px;color:var(--accent)}details[open] summary::before{content:"–"}
+pre{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;max-height:200px;overflow:auto;margin:10px 0;font:13px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap}
+.form{display:grid;grid-template-columns:auto 1fr;gap:10px 14px;align-items:center;margin-top:12px}
+.err{color:var(--bad);margin-top:8px}
+@media(max-width:760px){.hero-grid{grid-template-columns:1fr}header.top{padding:14px 16px}main{padding:0 12px 40px}}
+@media(prefers-reduced-motion:reduce){.gv{transition:none}}
+[hidden]{display:none!important}a{color:var(--accent)}
+.pill:not(.ok):not(.warn):not(.bad){color:var(--mute)}
+</style></head><body>
+<header class="top"><h1>Mazda CX-5<small>diagnose</small></h1>
+<div class="row"><div id="pill" class="pill">Niet verbonden</div>
+<button id="connBtn">Verbinden</button><button id="demoBtn" class="ghost">Demo</button><button id="stopBtn" class="ghost" hidden>Verbreken</button></div></header>
+<div id="connHelp" class="small mute" style="max-width:1120px;margin:-8px auto 12px;padding:0 28px">
+<a href="#" id="allLink">vLinker niet in de lijst? Toon alle apparaten</a>
+<div id="noBt" class="note" hidden>Deze browser kan geen Bluetooth gebruiken. Open deze pagina op je iPhone in <b>Bluefy</b>, of op je Mac in <b>Chrome</b>. De demo werkt wel overal.</div></div>
+<main>
+
+<section class="card" id="tpmsCard">
+  <div class="row between"><h2>Bandenspanning</h2>
+    <div class="row"><label class="row small mute">Streefdruk <input id="target" class="num" type="number" step="0.05" min="1" max="4"> bar</label>
+    <div class="seg" id="unitSeg"><button data-u="bar">bar</button><button data-u="psi">psi</button></div></div></div>
+  <div class="hero-grid">
+    <div id="car"></div>
+    <div>
+      <div class="row"><button id="measure">Nu meten</button><span class="small mute" id="tpmsTime"></span></div>
+      <div id="tpmsNote"></div>
+      <h2 style="margin-top:22px;font-size:15px">Verloop per meting</h2>
+      <div id="tpmsHist" class="small mute"></div>
+    </div>
+  </div>
+</section>
+
+<section class="card" id="accuCard">
+  <div class="row between"><h2>Accu</h2><div class="row"><span class="small mute" id="accuHint"></span><button id="accuBtn" class="ghost">Accu-check (30 s)</button></div></div>
+  <div class="hero-grid">
+    <div>
+      <div class="row" style="align-items:baseline;gap:14px"><span id="vBig" style="font:600 52px var(--num)">—</span><span id="vState" class="mute"></span></div>
+      <div id="vBar" style="margin:10px 0 4px"></div>
+      <div id="vText" class="small mute"></div>
+      <div class="tiles" id="accuTiles" style="margin-top:14px"></div>
+    </div>
+    <div>
+      <div id="accuProg" class="small mute"></div>
+      <div id="accuChart"></div>
+      <div id="accuRes"></div>
+      <p class="small mute" id="accuHelp">Zet het contact aan en druk op de knop. Wil je de startdip meten, start dan binnen 10 seconden de motor. Valt de adapter even uit, dan probeert de app zelf opnieuw te verbinden.</p>
+    </div>
+  </div>
+</section>
+
+<div class="cols">
+  <section class="card"><h2>Live</h2>
+    <div class="gauges" id="gauges"></div>
+    <div class="tiles" id="tiles"></div>
+    <div id="spark" style="margin-top:14px"></div>
+  </section>
+  <div style="display:grid;gap:20px;align-content:start">
+    <section class="card"><div class="row between"><h2>Storingscodes</h2><button id="dtcBtn" class="ghost">Uitlezen</button></div>
+      <div id="dtcOut" class="mute" style="margin-top:12px">Nog niet uitgelezen.</div></section>
+    <section class="card"><div class="row between"><h2>Rit</h2><button id="tripReset" class="ghost">Nulstellen</button></div>
+      <div class="tiles" id="tripTiles" style="margin-top:12px"></div><div id="tripNote" class="small mute" style="margin-top:8px"></div></section>
+    <section class="card"><h2>Auto</h2><dl id="info"></dl></section>
+  </div>
+</div>
+
+<section class="card"><details><summary>Opdrachten sturen en PID's zoeken</summary>
+  <p class="small mute">Alleen lezen is toegestaan. Zet eerst een header met <b>ATSH720</b>; die geldt dan voor de opdrachten hieronder (bijvoorbeeld <b>222A05</b>). Tijdens een zoekactie staat de live data even stil.</p>
+  <form id="conForm" class="row"><input id="conIn" placeholder="bijv. 0100" autocomplete="off" style="flex:1;min-width:180px"><button>Sturen</button></form>
+  <pre id="conLog">Nog niets verstuurd.</pre>
+  <h2 style="font-size:15px;margin-top:18px">PID's zoeken (mode 22)</h2>
+  <form id="swForm" class="row"><label class="row small mute">Header <input id="swH" class="num" value="720"></label>
+    <label class="row small mute">Van <input id="swA" class="num" value="2A00"></label>
+    <label class="row small mute">Tot <input id="swB" class="num" value="2AFF"></label><button id="swBtn">Zoeken</button></form>
+  <div id="swOut" class="small" style="margin-top:10px"></div>
+</details></section>
+
+<section class="card"><details><summary>Instellingen bandenspanning</summary>
+  <p class="small mute">Deze waarden zijn een aanname op basis van een andere Mazda en moeten in de auto bevestigd worden. Meet één band ook met een gewone bandenspanningsmeter: wijkt de uitkomst af, pas dan de omrekenfactor aan. Pomp je één band extra op, dan zie je welke positie bij welke PID hoort.</p>
+  <form id="setForm" class="form">
+    <label for="sH">Header</label><input id="sH" class="num">
+    <label for="sP">PID's (LV, RV, LA, RA)</label><input id="sP">
+    <label for="sB">Aantal bytes</label><input id="sB" class="num" type="number" min="1" max="2">
+    <label for="sK">kPa per eenheid</label><input id="sK" class="num" type="number" step="0.001">
+    <label for="sO">Correctie (kPa)</label><input id="sO" class="num" type="number" step="0.1">
+    <label for="sF">Brandstof</label><select id="sF" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px"><option>benzine</option><option>diesel</option><option>anders</option></select>
+    <label for="sC">Eigen waarden</label><div><textarea id="sC" rows="5" style="width:100%;font:13px ui-monospace,Menlo,monospace;padding:8px;border:1px solid var(--line);border-radius:8px" spellcheck="false"></textarea>
+    <div class="small mute">Eén regel per waarde: naam; header; PID; bytes; schaal; offset; eenheid; groep (accu of overig). De accu-SOC komt van een Mazda6 en is voor jouw auto nog niet bevestigd: vergelijk met BATT_SOC in FORScan Lite.</div></div>
+    <span></span><div class="row"><button>Opslaan</button><span id="setMsg" class="small"></span></div>
+  </form>
+</details></section>
+</main>
+
+<script>
+// ===========================================================================
+// OBD-webapp voor de Mazda CX-5 via de vLinker FD+ (Web Bluetooth).
+// Werkt in Bluefy (iPhone) en Chrome/Edge (Mac). Alles is alleen-lezen richting de auto.
+// ===========================================================================
+'use strict';
+
+const DEFAULT_SETTINGS = {
+  tpms_header: '720',
+  tpms_pids: ['2A05', '2A06', '2A07', '2A08'], // volgorde: LV, RV, LA, RA (aanname)
+  tpms_bytes: 1,
+  tpms_kpa_per_count: 1.373,
+  tpms_offset_kpa: 0.0,
+  target_bar: 2.3,
+  brandstof: 'benzine',
+  custom: [
+    { naam: 'Accu laadtoestand (SOC)', header: '7E0', pid: '4028', bytes: 1, schaal: 1.0, offset: 0.0, eenheid: '%', groep: 'accu' },
+  ],
+};
+
+const LIVE = {
+  '0C': ['Toerental', 'tpm', b => (b[0] * 256 + b[1]) / 4],
+  '0D': ['Snelheid', 'km/u', b => b[0]],
+  '05': ['Koelvloeistof', '°C', b => b[0] - 40],
+  '0F': ['Inlaatlucht', '°C', b => b[0] - 40],
+  '04': ['Motorbelasting', '%', b => b[0] * 100 / 255],
+  '11': ['Gasklep', '%', b => b[0] * 100 / 255],
+  '2F': ['Brandstof', '%', b => b[0] * 100 / 255],
+  '46': ['Buitentemperatuur', '°C', b => b[0] - 40],
+  '5C': ['Olietemperatuur', '°C', b => b[0] - 40],
+  '42': ['Boordspanning ECU', 'V', b => (b[0] * 256 + b[1]) / 1000],
+  '10': ['Luchtmassa (MAF)', 'g/s', b => (b[0] * 256 + b[1]) / 100],
+  '0B': ['Inlaatdruk', 'kPa', b => b[0]],
+  '0E': ['Ontstekingstijdstip', '°', b => b[0] / 2 - 64],
+  '06': ['Brandstofcorrectie kort', '%', b => b[0] / 1.28 - 100],
+  '07': ['Brandstofcorrectie lang', '%', b => b[0] / 1.28 - 100],
+  '1F': ['Tijd sinds start', 's', b => b[0] * 256 + b[1]],
+  '5E': ['Brandstofverbruik', 'L/u', b => (b[0] * 256 + b[1]) / 20],
+};
+const LIVE_NEEDS = { '0C': 2, '42': 2, '10': 2, '1F': 2, '5E': 2 };
+
+const ALLOWED_SERVICES = ['01', '02', '03', '07', '09', '0A', '19', '22'];
+const BLOCKED_AT = /^(ATPP|ATSP|ATZ$|ATWS|ATD$|ATBR|ATIB)/;
+const HEX = /^[0-9A-F]+$/;
+
+// Bluetooth-diensten die ELM327-adapters gebruiken. Web Bluetooth ziet alleen diensten uit deze lijst.
+const BLE_SERVICES = [0xfff0, 0xffe0, 0x18f0, 0xffb0, 0xfee7, 0xae30,
+  'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '6e400001-b5a3-f393-e0a9-e50e24dcca9e'];
+
+const KEY_SETTINGS = 'obd_instellingen', KEY_HISTORY = 'obd_bandenspanning';
+
+function loadStore(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch (e) { return def; }
+}
+function saveStore(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { console.log('Kon niet opslaan', e); }
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const round2 = v => Math.round(v * 100) / 100;
+const comma = (v, d = 1) => v.toFixed(d).replace('.', ',');
+function hexToBytes(h) { const out = new Uint8Array(h.length >> 1); for (let i = 0; i < out.length; i++) out[i] = parseInt(h.substr(i * 2, 2), 16); return out; }
+const bytesToHex = b => Array.from(b, x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+const intFromBytes = (b, n) => { let v = 0; for (let i = 0; i < n; i++) v = v * 256 + b[i]; return v; };
+const anyNonZero = b => Array.from(b).some(x => x !== 0);
+
+// ---------------------------------------------------------------------------
+// Antwoorden van de ELM327 lezen
+// ---------------------------------------------------------------------------
+function hexLines(text) {
+  const out = [];
+  for (const raw of (text || '').split('\n')) {
+    const line = raw.trim().toUpperCase().replace(/ /g, '');
+    if (line && HEX.test(line)) out.push(line);
+  }
+  return out;
+}
+function frames(text) {
+  const out = [];
+  for (const line of hexLines(text)) {
+    if (line.length < 6) continue;
+    const header = line.slice(0, 3), rest = line.slice(3);
+    const n = parseInt(rest.slice(0, 2), 16);
+    if (isNaN(n) || n > 7) continue;
+    out.push([header, rest.slice(2, 2 + 2 * n)]);
+  }
+  return out;
+}
+function payloadAfter(text, prefix) {
+  for (const [h, p] of frames(text)) {
+    if (p.startsWith(prefix)) {
+      let r = p.slice(prefix.length);
+      if (r.length % 2) r = r.slice(0, -1);
+      return [h, hexToBytes(r)];
+    }
+  }
+  return [null, null];
+}
+function assemble(text) {
+  const multi = [], singles = [];
+  for (const raw of (text || '').split('\n')) {
+    const line = raw.trim().toUpperCase().replace(/ /g, '');
+    const m = line.match(/^[0-9A-F]:([0-9A-F]+)$/);
+    if (m) multi.push(m[1]);
+    else if (line && HEX.test(line) && line.length % 2 === 0) singles.push(line);
+  }
+  return (multi.length ? [multi.join('')] : []).concat(singles);
+}
+function decodeDtcs(text, service) {
+  const codes = [];
+  for (const d of assemble(text)) {
+    if (!d.startsWith(service) || d.length < 4) continue;
+    const b = hexToBytes(d.slice(2)), n = b[0], body = b.slice(1);
+    for (let i = 0; i < Math.min(n, body.length >> 1); i++) {
+      const b0 = body[2 * i], b1 = body[2 * i + 1];
+      if (b0 === 0 && b1 === 0) continue;
+      codes.push('PCBU'[b0 >> 6] + ((b0 >> 4) & 3) + (b0 & 0xF).toString(16).toUpperCase() + b1.toString(16).padStart(2, '0').toUpperCase());
+    }
+  }
+  return codes;
+}
+function decodeSupport(data, base) {
+  const found = new Set();
+  for (let i = 0; i < 32; i++) if (data[i >> 3] & (0x80 >> (i % 8))) found.add(base + i + 1);
+  return found;
+}
+
+function evaluateBattery(samples) {
+  const vs = samples.map(s => s[1]), n = vs.length;
+  if (n < 5) return { oordeel: 'onbekend', regels: ['Te weinig metingen ontvangen. Controleer de verbinding en probeer opnieuw.'] };
+  const med = x => { const s = [...x].sort((a, b) => a - b); return s[s.length >> 1]; };
+  const k = Math.max(3, Math.floor(n / 6));
+  const start = med(vs.slice(0, k)), eind = med(vs.slice(-k)), lo = Math.min(...vs), hi = Math.max(...vs);
+  const regels = []; let oordeel = 'goed';
+  if (lo < start - 1.2 && start < 13.0) {
+    regels.push(`Starten: de spanning zakte naar ${comma(lo)} V (daarvoor ${comma(start)} V).`);
+    if (lo >= 10.0) regels.push('Dat is een normale dip bij starten.');
+    else if (lo >= 9.0) { regels.push('Dat is aan de lage kant. Houd de accu in de gaten, vooral als het koud is.'); oordeel = 'let op'; }
+    else { regels.push('Dat is laag. Laat de accu controleren.'); oordeel = 'slecht'; }
+    regels.push('Deze meting kan het diepste punt missen; de echte dip kan dieper zijn.');
+  }
+  if (eind >= 13.0) {
+    regels.push(`Motor draait: de spanning is ${comma(eind)} V (bereik ${comma(lo)} tot ${comma(hi)} V).`);
+    if (eind > 15.0) { regels.push('Dat is te hoog. Laat het laadsysteem nakijken.'); oordeel = 'slecht'; }
+    else if (eind >= 13.4) regels.push('De dynamo laadt normaal. Mazda regelt de laadspanning slim, dus ze varieert.');
+    else { regels.push('Dat is laag voor een draaiende motor. Meet nog eens bij hoger toerental of na een rit.'); if (oordeel === 'goed') oordeel = 'let op'; }
+  } else {
+    regels.push(`Motor uit: de spanning is ${comma(eind)} V.`);
+    if (eind >= 12.5) regels.push('Dat past bij een goed geladen accu.');
+    else if (eind >= 12.2) { regels.push('Redelijk geladen. Met contact aan ligt de spanning iets lager dan in rust.'); if (oordeel === 'goed') oordeel = 'let op'; }
+    else { regels.push('Laag. De accu is leeg of verzwakt. Laad hem op of laat hem testen.'); oordeel = eind < 12.0 ? 'slecht' : 'let op'; }
+  }
+  return { oordeel, start: round2(start), min: round2(lo), max: round2(hi), eind: round2(eind), regels };
+}
+
+function parseCustom(text) {
+  const out = [];
+  String(text).split('\n').forEach((raw, idx) => {
+    const nr = idx + 1, line = raw.trim();
+    if (!line || line.startsWith('#')) return;
+    const p = line.split(';').map(x => x.trim());
+    if (p.length < 3) throw new Error(`Regel ${nr}: gebruik 'Naam; header; PID; bytes; schaal; offset; eenheid; groep'.`);
+    while (p.length < 8) p.push('');
+    const header = p[1].replace(/[^0-9A-Fa-f]/g, '').toUpperCase(), pid = p[2].replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
+    if (!/^[0-9A-F]{3}$/.test(header)) throw new Error(`Regel ${nr}: header moet 3 hex-tekens zijn, bijvoorbeeld 7E0.`);
+    if (!/^[0-9A-F]{4}$/.test(pid)) throw new Error(`Regel ${nr}: PID moet 4 hex-tekens zijn, bijvoorbeeld 4028.`);
+    const nbytes = parseInt(p[3] || '1', 10), schaal = parseFloat((p[4] || '1').replace(',', '.')), offset = parseFloat((p[5] || '0').replace(',', '.'));
+    if ([nbytes, schaal, offset].some(v => isNaN(v))) throw new Error(`Regel ${nr}: bytes, schaal en offset moeten getallen zijn.`);
+    if (![1, 2, 3, 4].includes(nbytes)) throw new Error(`Regel ${nr}: aantal bytes is 1 tot 4.`);
+    const groep = ['accu', 'overig'].includes(p[7].toLowerCase()) ? p[7].toLowerCase() : 'overig';
+    out.push({ naam: p[0].slice(0, 40) || pid, header, pid, bytes: nbytes, schaal, offset, eenheid: p[6].slice(0, 8), groep });
+  });
+  if (out.length > 16) throw new Error('Maximaal 16 eigen waarden.');
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Adapters: echt (Web Bluetooth) en demo
+// ---------------------------------------------------------------------------
+class BleAdapter {
+  // Moet direct vanuit een tik/klik worden aangeroepen (eis van de browser).
+  static async pick(showAll) {
+    if (!navigator.bluetooth) throw new Error('Deze browser kan geen Bluetooth gebruiken. Open de pagina in Bluefy (iPhone) of Chrome (Mac).');
+    const opts = showAll
+      ? { acceptAllDevices: true, optionalServices: BLE_SERVICES }
+      : { filters: ['vLink', 'VLINK', 'Vlink', 'vlink', 'OBD', 'Vgate', 'IOS-Vlink'].map(n => ({ namePrefix: n })), optionalServices: BLE_SERVICES };
+    return navigator.bluetooth.requestDevice(opts);
+  }
+
+  constructor(device) {
+    this.device = device; this.buf = ''; this.waiter = null; this.writeCh = null; this.notifyCh = null;
+    this.dec = new TextDecoder();
+    this._onData = e => {
+      this.buf += this.dec.decode(e.target.value);
+      if (this.buf.includes('>') && this.waiter) { const w = this.waiter; this.waiter = null; w(); }
+    };
+  }
+  get connected() { return !!(this.device.gatt && this.device.gatt.connected); }
+
+  async connect() {
+    const server = await this.device.gatt.connect();
+    const services = await server.getPrimaryServices();
+    let notify = null, write = null; const seen = [];
+    for (const svc of services) {
+      seen.push(svc.uuid);
+      if (svc.uuid.startsWith('00001800') || svc.uuid.startsWith('00001801')) continue;
+      let chars = [];
+      try { chars = await svc.getCharacteristics(); } catch (e) { continue; }
+      for (const ch of chars) {
+        const p = ch.properties;
+        if (!notify && (p.notify || p.indicate)) notify = ch;
+        if (!write && (p.write || p.writeWithoutResponse)) write = ch;
+      }
+    }
+    if (!(notify && write)) throw new Error('De adapter heeft geen bruikbare Bluetooth-kanalen. Gevonden diensten: ' + (seen.join(', ') || 'geen'));
+    this.writeCh = write; this.notifyCh = notify;
+    notify.addEventListener('characteristicvaluechanged', this._onData);
+    await notify.startNotifications();
+    return this.device.name || 'vLinker';
+  }
+
+  async send(cmd, timeout = 6000) {
+    if (!this.connected) throw new Error('Bluetooth-verbinding verbroken');
+    this.buf = '';
+    const done = new Promise(res => { this.waiter = res; });
+    const data = new TextEncoder().encode(cmd + '\r');
+    const ch = this.writeCh;
+    if (ch.properties.write && ch.writeValueWithResponse) await ch.writeValueWithResponse(data);
+    else if (ch.writeValueWithoutResponse) await ch.writeValueWithoutResponse(data);
+    else await ch.writeValue(data);
+    const ok = await Promise.race([done.then(() => true), sleep(timeout).then(() => false)]);
+    this.waiter = null;
+    if (!ok) { if (!this.connected) throw new Error('Bluetooth-verbinding verbroken'); return ''; }
+    return this.buf.replace(/\r/g, '\n').replace(/>/g, '').split('\n').map(l => l.trim()).filter(Boolean).join('\n');
+  }
+
+  async close() {
+    try { if (this.notifyCh) this.notifyCh.removeEventListener('characteristicvaluechanged', this._onData); } catch (e) {}
+    try { if (this.connected) this.device.gatt.disconnect(); } catch (e) {}
+  }
+}
+
+class DemoAdapter {
+  constructor() { this.hdr = '7DF'; this.t0 = Date.now() / 1000; this.VIN = 'DEMO0000000000000'; }
+  get connected() { return true; }
+  _phase() { const t = (Date.now() / 1000 - this.t0) % 90; return [t, t >= 41]; }
+  _volt() {
+    const [t, engine] = this._phase();
+    if (engine) return 14.1 + 0.15 * Math.sin(Date.now() / 1000);
+    if (t >= 40 && t < 41) return 10.4 + 0.3 * Math.random();
+    return 12.55 + 0.03 * Math.random();
+  }
+  async connect() { await sleep(500); return 'Demo-adapter'; }
+  async close() {}
+  static _frame(pid, data) { return '7E8' + (2 + data.length).toString(16).padStart(2, '0').toUpperCase() + '41' + pid + bytesToHex(data); }
+  _live(pid) {
+    const t = Date.now() / 1000, engine = this._phase()[1];
+    const speed = engine ? Math.max(0, 55 + 45 * Math.sin(t / 15)) : 0;
+    const rpm = engine ? 750 + speed * 32 + 150 * Math.sin(t / 3) : 0;
+    const maf = engine ? 2.5 + speed * 0.22 : 0;
+    const two = v => [(v >> 8) & 255, v & 255];
+    const vals = {
+      '0C': two(Math.floor(rpm * 4)), '0D': [Math.floor(speed)], '05': [128], '0F': [71],
+      '04': [engine ? Math.floor(Math.min(255, 40 + speed * 1.2)) : 0], '11': [Math.floor(Math.min(255, 30 + speed))],
+      '2F': [140], '46': [49], '5C': [135], '42': two(Math.floor(this._volt() * 1000)), '10': two(Math.floor(maf * 100)),
+      '0B': [Math.floor(30 + speed * 0.4)], '0E': [Math.floor((12 + speed / 10 + 64) * 2)],
+      '06': [Math.floor(101.5 * 1.28)], '07': [Math.floor(98 * 1.28)], '1F': two(Math.floor(t - this.t0)),
+    };
+    return vals[pid] ? DemoAdapter._frame(pid, vals[pid]) : 'NO DATA';
+  }
+  async send(cmd) {
+    await sleep(40);
+    const c = cmd.toUpperCase().replace(/ /g, '');
+    if (c.startsWith('AT')) {
+      if (c === 'ATZ') return 'ELM327 v2.2 (demo)';
+      if (c === 'ATRV') return this._volt().toFixed(1) + 'V';
+      if (c === 'ATDP') return 'ISO 15765-4 (CAN 11/500)';
+      if (c.startsWith('ATSH')) this.hdr = c.slice(4);
+      return 'OK';
+    }
+    const fixed = { '0100': '7E8064100FE3FA813', '0120': '7E806412000020001', '0140': '7E806414044000010', '0160': '7E806416000000000', '03': '43010133', '07': '4700' };
+    if (fixed[c]) return fixed[c];
+    if (c.startsWith('01') && c.length === 4) return this._live(c.slice(2));
+    if (c === '0902') {
+      const payload = [0x49, 0x02, 0x01, ...Array.from(this.VIN, ch => ch.charCodeAt(0))];
+      const lines = [payload.length.toString(16).padStart(3, '0').toUpperCase(), '0:' + bytesToHex(payload.slice(0, 6))];
+      let rest = payload.slice(6), i = 1;
+      while (rest.length) { lines.push(i + ':' + bytesToHex(rest.slice(0, 7))); rest = rest.slice(7); i++; }
+      return lines.join('\n');
+    }
+    if (c.startsWith('22') && c.length === 6) {
+      const pid = c.slice(2);
+      if (this.hdr === '7E0') return pid === '4028' ? '7E80462' + pid + '43' : '7E8037F2231';
+      if (this.hdr !== '720') return 'NO DATA';
+      const demo = { '2A05': 168, '2A06': 166, '2A07': 171, '2A08': 163 };
+      return demo[pid] ? '7280462' + pid + demo[pid].toString(16).toUpperCase().padStart(2, '0') : '728037F2231';
+    }
+    return '?';
+  }
+}
+
+// Zorgt dat opdrachten één voor één naar de adapter gaan.
+class Lock {
+  constructor() { this.p = Promise.resolve(); }
+  run(fn) { const r = this.p.then(() => fn()); this.p = r.catch(() => {}); return r; }
+}
+
+// ---------------------------------------------------------------------------
+// De auto: verbinding, meten, lezen
+// ---------------------------------------------------------------------------
+const emptyTrip = () => ({ km: 0, min: 0, max_kmh: 0, liter: 0, verbruik: null, momentaan: null, momentaan_lph: null, bron: null });
+
+class Car {
+  constructor() {
+    this.settings = { ...DEFAULT_SETTINGS, ...loadStore(KEY_SETTINGS, {}) };
+    this.a = null; this.lock = new Lock(); this.running = false; this.session = 0;
+    this.supported = new Set(); this.consoleHeader = null; this.hist = []; this.tripT = null;
+    this.state = {
+      status: 'los', message: 'Niet verbonden', demo: false, adapter_name: null,
+      voltage: null, protocol: null, vin: null, supported: [], live: {},
+      tpms: { gemeten: null, bezig: false, wielen: [] },
+      tpms_history: loadStore(KEY_HISTORY, []),
+      dtc: { gelezen: null, actief: [], wachtend: [], ruw: '' },
+      sweep: { bezig: false, klaar: 0, totaal: 0, treffers: [] },
+      custom: {},
+      accu_test: { bezig: false, klaar: 0, totaal: 0, samples: [], uitkomst: null },
+      trip: emptyTrip(),
+    };
+  }
+  set(kw) { Object.assign(this.state, kw); }
+  snapshot() { return { ...this.state, settings: this.settings, history: this.hist }; }
+  send(cmd, timeout) { return this.a.send(cmd, timeout); }
+  needConnected() { if (this.state.status !== 'verbonden') throw new Error('Nog niet verbonden met de auto.'); }
+
+  async start(adapter, demo) {
+    await this.stop();
+    const my = ++this.session;
+    this.a = adapter; this.running = true; this.lock = new Lock();
+    this.set({ demo, live: {}, custom: {}, vin: null, protocol: null, voltage: null });
+    while (this.running && my === this.session) {
+      try {
+        await this.connectAndInit(my);
+        await this.pollForever(my);
+      } catch (e) {
+        if (!this.running || my !== this.session) break;
+        this.set({ status: 'fout', message: (e && e.message) || String(e) });
+        try { await this.a.close(); } catch (x) {}
+        await sleep(5000);
+        if (this.running && my === this.session) this.set({ status: 'verbinden', message: 'Opnieuw verbinden…' });
+      }
+    }
+  }
+  async stop() {
+    this.running = false; this.session++;
+    if (this.a) { try { await this.a.close(); } catch (e) {} }
+    this.set({ status: 'los', message: 'Niet verbonden' });
+  }
+
+  async connectAndInit(my) {
+    this.set({ status: 'verbinden', message: 'Verbinden met de vLinker…' });
+    const name = await this.a.connect();
+    this.set({ adapter_name: name, message: 'Adapter instellen…' });
+    await this.lock.run(async () => {
+      for (const cmd of ['ATZ', 'ATE0', 'ATL0', 'ATS0', 'ATH1', 'ATSP6']) await this.send(cmd, cmd === 'ATZ' ? 12000 : 6000);
+      this.set({ protocol: (await this.send('ATDP')).trim() || null });
+      let data;
+      while (true) {
+        if (my !== this.session) throw new Error('Gestopt');
+        const text = await this.send('0100', 8000);
+        data = payloadAfter(text, '4100')[1];
+        if (data && data.length >= 4) break;
+        this.set({ status: 'verbinden', message: 'De auto antwoordt niet. Zet het contact aan.' });
+        await sleep(3000);
+      }
+      let supported = decodeSupport(data, 0x00), base = 0x00;
+      while (supported.has(base + 0x20) && base < 0x60) {
+        base += 0x20;
+        const hx = base.toString(16).toUpperCase().padStart(2, '0');
+        const d = payloadAfter(await this.send('01' + hx, 8000), '41' + hx)[1];
+        if (!d || d.length < 4) break;
+        for (const p of decodeSupport(d, base)) supported.add(p);
+      }
+      this.supported = supported;
+      this.set({ supported: [...supported].sort((a, b) => a - b).map(p => p.toString(16).toUpperCase().padStart(2, '0')) });
+      await this.readVin();
+      this.set({ voltage: Car.volts(await this.send('ATRV')) });
+    });
+    this.set({ status: 'verbonden', message: '' });
+  }
+
+  static volts(text) { const m = (text || '').match(/(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : null; }
+
+  async readVin() {
+    await this.send('ATH0');
+    let text;
+    try { text = await this.send('0902', 8000); } finally { await this.send('ATH1'); }
+    for (const d of assemble(text)) {
+      const i = d.indexOf('490201');
+      if (i >= 0) {
+        const vin = Array.from(hexToBytes(d.slice(i + 6))).filter(c => c > 32 && c < 127).map(c => String.fromCharCode(c)).join('');
+        if (vin) { this.set({ vin }); return; }
+      }
+    }
+  }
+
+  async pollForever(my) {
+    const order = Object.keys(LIVE).filter(p => this.supported.has(parseInt(p, 16)));
+    const fast = ['0C', '0D', '10'].filter(p => order.includes(p));
+    const slow = order.filter(p => !fast.includes(p));
+    let i = 0;
+    while (this.running && my === this.session) {
+      const batch = fast.concat(slow.length ? [slow[i % slow.length]] : []);
+      i++;
+      await this.lock.run(async () => {
+        for (const pid of batch) await this.readLive(pid);
+        if (i % 4 === 0) this.set({ voltage: Car.volts(await this.send('ATRV', 4000)) });
+        if (!batch.length) await this.send('ATRV', 4000);
+        if (i % 12 === 1) await this.readCustom();
+      });
+      this.updateTrip();
+      const live = this.state.live;
+      this.hist.push([Math.round(Date.now() / 100) / 10, live['0C'] ? live['0C'].waarde : null, live['0D'] ? live['0D'].waarde : null]);
+      if (this.hist.length > 150) this.hist.shift();
+      await sleep(250);
+    }
+  }
+
+  async readLive(pid) {
+    const data = payloadAfter(await this.send('01' + pid, 4000), '41' + pid)[1];
+    if (!data || data.length < (LIVE_NEEDS[pid] || 1)) return;
+    const [naam, eenheid, fn] = LIVE[pid];
+    this.state.live[pid] = { naam, eenheid, waarde: round2(fn(data)) };
+  }
+
+  async readCustom() {
+    const items = this.settings.custom || [];
+    if (!items.length) return;
+    try {
+      for (const header of [...new Set(items.map(c => c.header))]) {
+        await this.send('ATSH' + header, 4000);
+        for (const c of items.filter(x => x.header === header)) {
+          const text = await this.send('22' + c.pid, 4000);
+          const data = payloadAfter(text, '62' + c.pid)[1], n = parseInt(c.bytes, 10), key = c.header + ':' + c.pid;
+          this.state.custom[key] = (data && data.length >= n)
+            ? { naam: c.naam, eenheid: c.eenheid, groep: c.groep, waarde: round2(intFromBytes(data, n) * c.schaal + c.offset), raw: bytesToHex(data) }
+            : { naam: c.naam, eenheid: c.eenheid, groep: c.groep, waarde: null, raw: (text || 'geen antwoord').replace(/\n/g, ' ') };
+        }
+      }
+    } finally { await this.send('ATSH7DF', 4000); }
+    const keep = new Set(items.map(c => c.header + ':' + c.pid));
+    for (const k of Object.keys(this.state.custom)) if (!keep.has(k)) delete this.state.custom[k];
+  }
+
+  fuelLph(live) {
+    if (live['5E']) return [live['5E'].waarde, 'gemeten'];
+    if (live['10'] && this.settings.brandstof === 'benzine') return [live['10'].waarde / 14.7 * 3600 / 745, 'schatting'];
+    return [null, null];
+  }
+  updateTrip() {
+    const now = Date.now() / 1000, live = this.state.live, tr = this.state.trip;
+    const dt = this.tripT ? now - this.tripT : 0; this.tripT = now;
+    if (dt <= 0 || dt > 3) return;
+    const speed = live['0D'] ? live['0D'].waarde : null;
+    const [lph, bron] = this.fuelLph(live);
+    if (speed != null) { tr.km += speed * dt / 3600; tr.max_kmh = Math.max(tr.max_kmh, speed); if (speed > 1) tr.min += dt / 60; }
+    if (lph != null) {
+      tr.liter += lph * dt / 3600; tr.bron = bron;
+      tr.momentaan = speed && speed >= 8 ? Math.round(lph * 1000 / speed) / 10 : null;
+      tr.momentaan_lph = round2(lph);
+    }
+    tr.verbruik = tr.km >= 0.5 && tr.liter > 0 ? Math.round(tr.liter * 1000 / tr.km) / 10 : null;
+  }
+  resetTrip() { this.set({ trip: emptyTrip() }); }
+
+  async accuTest(seconds) {
+    this.needConnected();
+    if (this.state.accu_test.bezig) throw new Error('Er loopt al een accu-check.');
+    this.set({ accu_test: { bezig: true, klaar: 0, totaal: seconds, samples: [], uitkomst: null } });
+    const samples = [], t0 = Date.now() / 1000;
+    try {
+      await this.lock.run(async () => {
+        while (Date.now() / 1000 - t0 < seconds) {
+          const v = Car.volts(await this.send('ATRV', 2000));
+          if (v != null) samples.push([round2(Date.now() / 1000 - t0), v]);
+          this.set({ accu_test: { bezig: true, klaar: Math.round(Date.now() / 1000 - t0), totaal: seconds, samples: samples.slice(-400), uitkomst: null } });
+        }
+      });
+    } finally {
+      this.set({ accu_test: { bezig: false, klaar: seconds, totaal: seconds, samples: samples.slice(-400), uitkomst: evaluateBattery(samples) } });
+    }
+  }
+
+  async measureTpms() {
+    this.needConnected();
+    const s = this.settings, wielen = [];
+    this.set({ tpms: { ...this.state.tpms, bezig: true } });
+    const now = new Date().toISOString();
+    try {
+      await this.lock.run(async () => {
+        await this.send('ATSH' + s.tpms_header, 4000);
+        try {
+          for (const pid of s.tpms_pids) {
+            const text = await this.send('22' + pid, 4000);
+            const data = payloadAfter(text, '62' + pid)[1], n = parseInt(s.tpms_bytes, 10);
+            if (data && data.length >= n) {
+              const count = intFromBytes(data, n);
+              const bar = count > 0 ? round2((count * s.tpms_kpa_per_count + s.tpms_offset_kpa) / 100) : null;
+              wielen.push({ pid, raw: bytesToHex(data), bar });
+            } else wielen.push({ pid, raw: (text || 'geen antwoord').replace(/\n/g, ' '), bar: null });
+          }
+        } finally { await this.send('ATSH7DF', 4000); }
+      });
+    } finally {
+      this.set({ tpms: { gemeten: now, bezig: false, wielen } });
+    }
+    if (wielen.length && wielen.every(w => w.bar != null)) {
+      const hist = this.state.tpms_history.concat([{ t: now, bar: wielen.map(w => w.bar) }]).slice(-60);
+      this.set({ tpms_history: hist });
+      saveStore(KEY_HISTORY, hist);
+    }
+  }
+
+  async readDtcs() {
+    this.needConnected();
+    let actief = '', wacht = '';
+    await this.lock.run(async () => {
+      await this.send('ATH0');
+      try { actief = await this.send('03', 8000); wacht = await this.send('07', 8000); }
+      finally { await this.send('ATH1'); }
+    });
+    this.set({ dtc: {
+      gelezen: new Date().toISOString(), actief: decodeDtcs(actief, '43'), wachtend: decodeDtcs(wacht, '47'),
+      ruw: `03: ${actief || '(geen antwoord)'} | 07: ${wacht || '(geen antwoord)'}`.replace(/\n/g, ' '),
+    } });
+  }
+
+  static clean(cmd) { return String(cmd).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20); }
+  static allowed(c) {
+    if (!c) return 'Leeg commando.';
+    if (c.startsWith('AT')) return BLOCKED_AT.test(c) ? 'Dit AT-commando is geblokkeerd.' : null;
+    if (!HEX.test(c) || c.length % 2) return 'Een auto-opdracht bestaat uit hex-tekens, bijvoorbeeld 0100 of 222A05.';
+    if (!ALLOWED_SERVICES.includes(c.slice(0, 2))) return 'Alleen lezen is toegestaan (diensten 01, 02, 03, 07, 09, 0A, 19 en 22).';
+    return null;
+  }
+  async console(cmd) {
+    this.needConnected();
+    const c = Car.clean(cmd), err = Car.allowed(c);
+    if (err) return err;
+    if (c.startsWith('ATSH')) { this.consoleHeader = c.slice(4) || null; return 'OK (geldt voor de volgende opdrachten hier)'; }
+    return this.lock.run(async () => {
+      if (this.consoleHeader && !c.startsWith('AT')) {
+        await this.send('ATSH' + this.consoleHeader, 4000);
+        try { return (await this.send(c, 6000)) || '(geen antwoord)'; } finally { await this.send('ATSH7DF', 4000); }
+      }
+      return (await this.send(c, 6000)) || '(geen antwoord)';
+    });
+  }
+
+  async sweep(headerIn, vanIn, totIn) {
+    this.needConnected();
+    if (this.state.sweep.bezig) throw new Error('Er loopt al een zoekopdracht.');
+    const header = Car.clean(headerIn);
+    if (!/^[0-9A-F]{3}$/.test(header)) throw new Error('Header moet 3 hex-tekens zijn, bijvoorbeeld 720.');
+    const a = parseInt(Car.clean(vanIn), 16), b = parseInt(Car.clean(totIn), 16);
+    if (isNaN(a) || isNaN(b)) throw new Error('Van en tot moeten hex-waarden zijn, bijvoorbeeld 2A00 en 2AFF.');
+    if (!(a >= 0 && a <= b && b <= 0xFFFF) || b - a > 0x3FF) throw new Error("Kies een bereik van maximaal 1024 PID's, met 'van' lager dan 'tot'.");
+    const total = b - a + 1, hits = [];
+    this.set({ sweep: { bezig: true, klaar: 0, totaal: total, treffers: [] } });
+    try {
+      await this.lock.run(async () => {
+        await this.send('ATSH' + header, 4000);
+        try {
+          for (let p = a, n = 1; p <= b; p++, n++) {
+            const pid = p.toString(16).toUpperCase().padStart(4, '0');
+            const data = payloadAfter(await this.send('22' + pid, 3000), '62' + pid)[1];
+            if (data && anyNonZero(data)) hits.push({ pid, raw: bytesToHex(data) });
+            if (n % 4 === 0 || n === total) this.set({ sweep: { bezig: true, klaar: n, totaal: total, treffers: hits } });
+          }
+        } finally { await this.send('ATSH7DF', 4000); }
+      });
+    } finally {
+      this.set({ sweep: { bezig: false, klaar: total, totaal: total, treffers: hits } });
+    }
+  }
+
+  updateSettings(nw) {
+    const s = { ...this.settings };
+    if ('tpms_header' in nw) {
+      const h = Car.clean(nw.tpms_header);
+      if (!/^[0-9A-F]{3}$/.test(h)) throw new Error('Header moet 3 hex-tekens zijn.');
+      s.tpms_header = h;
+    }
+    if ('tpms_pids' in nw) {
+      const pids = nw.tpms_pids.map(Car.clean);
+      if (pids.length !== 4 || !pids.every(p => /^[0-9A-F]{4}$/.test(p))) throw new Error("Vul vier PID's in van 4 hex-tekens, bijvoorbeeld 2A05.");
+      s.tpms_pids = pids;
+    }
+    for (const [key, lo, hi] of [['tpms_kpa_per_count', 0.01, 100], ['tpms_offset_kpa', -500, 500], ['target_bar', 1, 4]]) {
+      if (key in nw) {
+        const v = parseFloat(String(nw[key]).replace(',', '.'));
+        if (isNaN(v) || v < lo || v > hi) throw new Error(`${key} moet tussen ${lo} en ${hi} liggen.`);
+        s[key] = v;
+      }
+    }
+    if ('brandstof' in nw) {
+      if (!['benzine', 'diesel', 'anders'].includes(nw.brandstof)) throw new Error('Brandstof is benzine, diesel of anders.');
+      s.brandstof = nw.brandstof;
+    }
+    if ('custom_tekst' in nw) s.custom = parseCustom(nw.custom_tekst);
+    if ('tpms_bytes' in nw) {
+      const v = parseInt(nw.tpms_bytes, 10);
+      if (![1, 2].includes(v)) throw new Error('Aantal bytes is 1 of 2.');
+      s.tpms_bytes = v;
+    }
+    this.settings = s;
+    saveStore(KEY_SETTINGS, s);
+    return s;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Scherm
+// ---------------------------------------------------------------------------
+const car = new Car();
+const $ = s => document.querySelector(s);
+const nl = (v, d = 1) => v == null ? '—' : Number(v).toLocaleString('nl-NL', { minimumFractionDigits: d, maximumFractionDigits: d });
+let S = null, unit = loadStore('obd_unit', 'bar'), formFilled = false;
+const P = b => unit === 'psi' ? nl(b * 14.5038, 1) : nl(b, 2);
+const dateNl = iso => new Date(iso).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+async function act(fn) { try { await fn(); } catch (x) { alert(x.message || x); } render(); }
+
+function statusFor(bar, t) { if (bar == null) return 'none'; const d = Math.abs(bar - t); return d <= 0.2 ? 'ok' : d <= 0.5 ? 'warn' : 'bad'; }
+const WHEELS = [{ x: 118, y: 105, a: 'end', n: 'Links voor' }, { x: 302, y: 105, a: 'start', n: 'Rechts voor' }, { x: 118, y: 265, a: 'end', n: 'Links achter' }, { x: 302, y: 265, a: 'start', n: 'Rechts achter' }];
+
+function renderCar() {
+  const t = S.settings.target_bar, w = S.tpms.wielen || [];
+  let g = `<svg viewBox="0 0 420 360" role="img" aria-label="Bandenspanning per wiel">
+  <path d="M170 40 C195 22 225 22 250 40 L262 120 L264 260 L254 320 C230 342 190 342 166 320 L156 260 L158 120 Z" fill="#fff" stroke="#12202D" stroke-width="2"/>
+  <path d="M174 120 L246 120 L240 152 L180 152 Z M178 262 L242 262 L248 292 L172 292 Z" fill="#E7EBEE" stroke="#12202D" stroke-width="1.5"/>
+  <path d="M210 60 L210 108 M210 162 L210 252" stroke="#CBD3DA" stroke-width="1.5"/>`;
+  WHEELS.forEach((p, i) => {
+    const bar = w[i] ? w[i].bar : null, st = statusFor(bar, t), left = p.a === 'end';
+    const wx = left ? 142 : 262, cy = p.y;
+    g += `<rect x="${wx}" y="${cy - 26}" width="16" height="52" rx="5" style="fill:var(--${st})"/>`;
+    g += `<line x1="${left ? p.x + 8 : p.x - 8}" y1="${cy}" x2="${left ? wx : wx + 16}" y2="${cy}" style="stroke:var(--${st})" stroke-width="1.5"/>`;
+    let cap = w.length ? 'geen meting' : 'nog niet gemeten';
+    if (bar != null) { const d = bar - t; cap = `${d >= 0 ? '+' : '−'}${P(Math.abs(d))} t.o.v. streef`; }
+    g += `<text class="wname" x="${p.x}" y="${cy - 26}" text-anchor="${p.a}">${p.n}</text>`;
+    g += `<text class="wnum" x="${p.x}" y="${cy + 8}" text-anchor="${p.a}" style="fill:${bar == null ? 'var(--none)' : 'var(--ink)'}">${bar == null ? '—' : P(bar)}</text>`;
+    g += `<text class="wcap" x="${p.x}" y="${cy + 28}" text-anchor="${p.a}">${cap}</text>`;
+  });
+  $('#car').innerHTML = g + '</svg>';
+}
+function renderTpms() {
+  renderCar();
+  const T = S.tpms, w = T.wielen || [];
+  $('#measure').disabled = T.bezig || S.status !== 'verbonden';
+  $('#measure').textContent = T.bezig ? 'Bezig met meten…' : 'Nu meten';
+  $('#tpmsTime').textContent = T.gemeten ? 'Gemeten ' + dateNl(T.gemeten) : '';
+  let note = '';
+  if (!T.gemeten) note = '<p class="mute">Druk op Nu meten. Zet het contact aan; de sensoren geven meestal pas een waarde na het rijden.</p>';
+  else if (w.every(x => x.bar == null)) note = `<div class="note">Geen waarde gekregen. De sensoren sturen pas na het rijden een meting door: rij een paar kilometer en meet opnieuw. Antwoord van de auto: <b>${esc(w.map(x => x.raw).join(' · '))}</b>. Blijft dit leeg, dan klopt de PID-aanname niet; zoek hem onder "Opdrachten sturen en PID's zoeken".</div>`;
+  else if (w.some(x => x.bar == null)) note = '<div class="note">Niet alle wielen gaven een waarde. Rij nog een stukje en meet opnieuw.</div>';
+  $('#tpmsNote').innerHTML = note;
+  const H = S.tpms_history || [];
+  if (H.length < 2) { $('#tpmsHist').innerHTML = H.length ? `Eén meting opgeslagen (${dateNl(H[0].t)}). Na de volgende meting zie je hier het verloop.` : 'Metingen worden opgeslagen zodra alle vier de wielen een waarde geven.'; return; }
+  const rows = H.slice(-12), all = rows.flatMap(r => r.bar).concat(S.settings.target_bar);
+  const lo = Math.min(...all) - 0.1, hi = Math.max(...all) + 0.1, X = i => 20 + i * (560 / (rows.length - 1)), Y = v => 110 - (v - lo) / (hi - lo) * 100;
+  const colors = ['#1D5FA8', '#1B8A66', '#B87800', '#7A3E9D'], names = ['LV', 'RV', 'LA', 'RA'];
+  let s = `<svg viewBox="0 0 600 140" style="width:100%"><line x1="20" x2="580" y1="${Y(S.settings.target_bar)}" y2="${Y(S.settings.target_bar)}" stroke="#5B6A77" stroke-dasharray="4 4"/>`;
+  for (let k = 0; k < 4; k++) s += `<polyline fill="none" stroke="${colors[k]}" stroke-width="2" points="${rows.map((r, i) => X(i) + ',' + Y(r.bar[k])).join(' ')}"/>`;
+  s += `<text x="20" y="136" font-size="11" fill="#5B6A77">${dateNl(rows[0].t)}</text><text x="580" y="136" font-size="11" fill="#5B6A77" text-anchor="end">${dateNl(rows[rows.length - 1].t)}</text></svg>`;
+  s += '<div class="row small">' + names.map((n, k) => `<span><b style="color:${colors[k]}">━</b> ${n}</span>`).join('') + '<span>┄ streefdruk</span></div>';
+  $('#tpmsHist').innerHTML = s;
+}
+function gauge(val, max, label, unitTxt) {
+  const len = Math.PI * 80, f = val == null ? 0 : Math.max(0, Math.min(1, val / max));
+  return `<div class="gauge"><svg viewBox="0 0 180 104" aria-hidden="true"><path class="gt" d="M10 95 A80 80 0 0 1 170 95"/><path class="gv" d="M10 95 A80 80 0 0 1 170 95" style="stroke-dasharray:${len * f} ${len}"/></svg><div class="gn">${val == null ? '—' : nl(val, 0)}</div><div class="gl">${label} · ${unitTxt}</div></div>`;
+}
+const DEC = { 'V': 1, 'g/s': 1, '%': 0, 'L/u': 1, '°': 1, 's': 0 };
+const fmtLive = (v, u) => nl(v, u in DEC ? DEC[u] : 0);
+function renderLive() {
+  const L = S.live || {};
+  $('#gauges').innerHTML = gauge(L['0C'] && L['0C'].waarde, 7000, 'Toerental', 'tpm') + gauge(L['0D'] && L['0D'].waarde, 220, 'Snelheid', 'km/u');
+  const order = ['05', '5C', '0F', '46', '04', '11', '2F', '10', '0B', '0E', '06', '07', '5E'];
+  let t = order.filter(p => L[p]).map(p => `<div class="tile"><b>${fmtLive(L[p].waarde, L[p].eenheid)} <small>${L[p].eenheid}</small></b><span>${L[p].naam}</span></div>`).join('');
+  t += Object.values(S.custom || {}).filter(c => c.groep !== 'accu' && c.waarde != null).map(c => `<div class="tile"><b>${nl(c.waarde, 1)} <small>${esc(c.eenheid)}</small></b><span>${esc(c.naam)}</span></div>`).join('');
+  $('#tiles').innerHTML = t || '<p class="mute">Nog geen live data.</p>';
+  const H = S.history || [];
+  if (H.length < 3) { $('#spark').innerHTML = ''; return; }
+  const x = i => i * (300 / (H.length - 1)), line = (k, max) => H.map((r, i) => x(i) + ',' + (56 - Math.min(1, (r[k] || 0) / max) * 52)).join(' ');
+  $('#spark').innerHTML = `<div class="small mute">Laatste minuten</div><svg viewBox="0 0 300 60" style="width:100%;height:70px"><polyline fill="none" stroke="#1D5FA8" stroke-width="1.8" points="${line(1, 7000)}"/><polyline fill="none" stroke="#B3261E" stroke-width="1.8" points="${line(2, 220)}"/></svg><div class="row small"><span><b style="color:#1D5FA8">━</b> toerental</span><span><b style="color:#B3261E">━</b> snelheid</span></div>`;
+}
+function renderDtc() {
+  const d = S.dtc; $('#dtcBtn').disabled = S.status !== 'verbonden';
+  if (!d.gelezen) return;
+  let h = `<div class="small mute" style="margin-bottom:10px">Uitgelezen ${dateNl(d.gelezen)}</div>`;
+  if (!d.actief.length && !d.wachtend.length) h += '<p style="margin:0">Geen storingscodes gevonden.</p>';
+  h += d.actief.map(c => `<span class="code">${c}</span>`).join('') + d.wachtend.map(c => `<span class="code pend">${c}</span>`).join('');
+  if (d.wachtend.length) h += '<div class="small mute">Oranje: wachtende codes, nog niet bevestigd.</div>';
+  if (d.actief.length || d.wachtend.length) h += '<div class="small mute" style="margin-top:6px">Zoek de code op (bijvoorbeeld "P0133 Mazda") voor de betekenis. Deze app wist niets.</div>';
+  h += `<details style="margin-top:10px"><summary style="font-size:13px;font-weight:500">Ruw antwoord</summary><pre>${esc(d.ruw)}</pre></details>`;
+  const box = $('#dtcOut'); if (box.dataset.k !== d.gelezen) { box.className = ''; box.innerHTML = h; box.dataset.k = d.gelezen; }
+}
+function renderInfo() {
+  const rows = [['Adapter', S.demo ? 'Demo (geen echte auto)' : S.adapter_name], ['Protocol', S.protocol], ['VIN', S.vin], ['Ondersteunde live-gegevens', S.supported && S.supported.length ? S.supported.length + " standaard-PID's" : null], ['Accuspanning', S.voltage != null ? nl(S.voltage, 1) + ' V' : null]];
+  $('#info').innerHTML = rows.map(r => `<dt>${r[0]}</dt><dd>${esc(r[1]) || '—'}</dd>`).join('');
+}
+function renderSweep() {
+  const w = S.sweep; let h = '';
+  if (w.bezig) h = `Bezig: ${w.klaar} van ${w.totaal}`;
+  else if (w.totaal) h = `Klaar: ${w.totaal} PID's bekeken.`;
+  if (w.treffers.length) h += '<pre>' + w.treffers.map(t => t.pid + ': ' + t.raw).join('\n') + '</pre>'; else if (w.totaal && !w.bezig) h += ' Geen waarden ongelijk aan nul.';
+  if (h) $('#swOut').innerHTML = h;
+  $('#swBtn').disabled = w.bezig;
+}
+function renderAccu() {
+  const v = S.voltage, rpm = S.live['0C'] && S.live['0C'].waarde, run = rpm != null && rpm > 300, ok = S.status === 'verbonden';
+  $('#vBig').textContent = v == null ? '—' : nl(v, 1) + ' V';
+  $('#vState').textContent = v == null ? '' : (run ? 'Motor draait' : 'Motor uit');
+  const zones = run ? [[10, 13.0, 'bad'], [13.0, 13.4, 'warn'], [13.4, 14.9, 'ok'], [14.9, 15.5, 'bad']] : [[10, 12.0, 'bad'], [12.0, 12.5, 'warn'], [12.5, 15.5, 'ok']];
+  const X = x => 10 + (x - 10) / 5.5 * 580;
+  let b = '<svg viewBox="0 0 600 40" style="width:100%" aria-hidden="true">' + zones.map(z => `<rect x="${X(z[0])}" y="14" width="${X(z[1]) - X(z[0])}" height="12" style="fill:var(--${z[2]})" opacity=".85"/>`).join('');
+  if (v != null) { const m = X(Math.max(10, Math.min(15.5, v))); b += `<path d="M${m} 11 l-6 -10 h12 z" fill="#12202D"/>`; }
+  b += [10, 11, 12, 13, 14, 15].map(n => `<text x="${X(n)}" y="39" font-size="11" fill="#5B6A77" text-anchor="middle">${n}</text>`).join('') + '</svg>';
+  $('#vBar').innerHTML = b;
+  let t = 'Nog geen meting.';
+  if (v != null) {
+    if (run) t = v > 14.9 ? 'Hoog voor een draaiende motor.' : v >= 13.4 ? 'De dynamo laadt normaal.' : 'Laag voor een draaiende motor. Mazda regelt de laadspanning slim; de accu-check geeft een betere indruk.';
+    else t = (v >= 12.5 ? 'Goed geladen.' : v >= 12.2 ? 'Redelijk geladen.' : 'Laag.') + ' Met contact aan ligt de spanning iets lager dan in rust.';
+  }
+  $('#vText').textContent = t;
+  let tiles = '';
+  if (S.live['42']) tiles += `<div class="tile"><b>${nl(S.live['42'].waarde, 1)} <small>V</small></b><span>Spanning volgens motor-ECU</span></div>`;
+  tiles += Object.values(S.custom || {}).filter(c => c.groep === 'accu').map(c => c.waarde != null
+    ? `<div class="tile"><b>${nl(c.waarde, 0)} <small>${esc(c.eenheid)}</small></b><span>${esc(c.naam)} (nog te bevestigen)</span></div>`
+    : `<div class="tile"><b>—</b><span>${esc(c.naam)}: geen waarde (${esc(c.raw)})</span></div>`).join('');
+  $('#accuTiles').innerHTML = tiles;
+  const A = S.accu_test; $('#accuBtn').disabled = A.bezig || !ok;
+  $('#accuProg').textContent = A.bezig ? `Meting loopt: ${A.klaar} van ${A.totaal} s` : '';
+  if (A.samples.length > 2) {
+    const tot = Math.max(A.totaal, 1), Y = y => 110 - (Math.max(9, Math.min(15.5, y)) - 9) / 6.5 * 100;
+    $('#accuChart').innerHTML = `<svg viewBox="0 0 600 130" style="width:100%"><line x1="10" x2="590" y1="${Y(12.5)}" y2="${Y(12.5)}" stroke="#CBD3DA" stroke-dasharray="4 4"/><polyline fill="none" stroke="#1D5FA8" stroke-width="2" points="${A.samples.map(s => (10 + s[0] / tot * 580) + ',' + Y(s[1])).join(' ')}"/><text x="10" y="126" font-size="11" fill="#5B6A77">0 s</text><text x="590" y="126" font-size="11" fill="#5B6A77" text-anchor="end">${tot} s</text><text x="590" y="${Y(12.5) - 4}" font-size="11" fill="#5B6A77" text-anchor="end">12,5 V</text></svg>`;
+  } else $('#accuChart').innerHTML = '';
+  const R = A.uitkomst;
+  $('#accuRes').innerHTML = R ? `<div class="note" style="border-color:var(--${R.oordeel === 'goed' ? 'ok' : R.oordeel === 'let op' ? 'warn' : 'bad'});background:#fff"><b>${R.oordeel === 'goed' ? 'Ziet er goed uit' : R.oordeel === 'let op' ? 'Let op' : R.oordeel === 'slecht' ? 'Laat dit controleren' : 'Onbekend'}</b><br>${R.regels.join('<br>')}</div>` : '';
+}
+function renderTrip() {
+  const T = S.trip || {}, avg = T.min > 0.5 ? T.km / (T.min / 60) : null;
+  let t = `<div class="tile"><b>${nl(T.km, 1)} <small>km</small></b><span>Afstand</span></div>
+  <div class="tile"><b>${nl(T.min, 0)} <small>min</small></b><span>Rijtijd</span></div>
+  <div class="tile"><b>${avg == null ? '—' : nl(avg, 0)} <small>km/u</small></b><span>Gemiddeld</span></div>
+  <div class="tile"><b>${nl(T.max_kmh, 0)} <small>km/u</small></b><span>Hoogste snelheid</span></div>`;
+  if (T.bron) {
+    t += `<div class="tile"><b>${T.verbruik == null ? '—' : nl(T.verbruik, 1)} <small>L/100 km</small></b><span>Gemiddeld verbruik</span></div>`;
+    t += T.momentaan != null ? `<div class="tile"><b>${nl(T.momentaan, 1)} <small>L/100 km</small></b><span>Nu</span></div>` : `<div class="tile"><b>${T.momentaan_lph == null ? '—' : nl(T.momentaan_lph, 1)} <small>L/u</small></b><span>Nu (stilstaand)</span></div>`;
+  }
+  $('#tripTiles').innerHTML = t;
+  $('#tripNote').textContent = T.bron === 'schatting' ? 'Verbruik is een schatting uit de luchtmassa en klopt alleen bij benzine.' : (S.settings.brandstof === 'benzine' ? '' : 'Voor deze brandstof is er geen verbruiksschatting.');
+}
+function renderPill() {
+  const p = $('#pill'); let c = 'warn', t = S.message || 'Verbinden…';
+  if (S.status === 'verbonden') { c = 'ok'; t = (S.demo ? 'Demo-modus' : S.adapter_name) + (S.voltage != null ? ' · ' + nl(S.voltage, 1) + ' V' : ''); }
+  else if (S.status === 'fout') c = 'bad';
+  else if (S.status === 'los') { c = ''; t = navigator.bluetooth ? 'Niet verbonden' : 'Geen Bluetooth in deze browser'; }
+  p.className = 'pill ' + c; p.textContent = t;
+  const busy = S.status !== 'los';
+  $('#connBtn').hidden = busy; $('#demoBtn').hidden = busy; $('#stopBtn').hidden = !busy;
+  $('#allLink').hidden = busy || !navigator.bluetooth;
+  $('#noBt').hidden = !!navigator.bluetooth;
+}
+function fillForm() {
+  const s = S.settings; if (formFilled || (document.activeElement && document.activeElement.closest && document.activeElement.closest('#setForm'))) return;
+  $('#sH').value = s.tpms_header; $('#sP').value = s.tpms_pids.join(', '); $('#sB').value = s.tpms_bytes; $('#sK').value = s.tpms_kpa_per_count; $('#sO').value = s.tpms_offset_kpa; $('#sF').value = s.brandstof;
+  $('#sC').value = (s.custom || []).map(c => [c.naam, c.header, c.pid, c.bytes, c.schaal, c.offset, c.eenheid, c.groep].join('; ')).join('\n'); formFilled = true;
+}
+function render() {
+  S = car.snapshot();
+  renderPill(); renderTpms(); renderAccu(); renderLive(); renderTrip(); renderDtc(); renderInfo(); renderSweep(); fillForm();
+  if (document.activeElement !== $('#target')) $('#target').value = S.settings.target_bar;
+  document.querySelectorAll('#unitSeg button').forEach(b => b.classList.toggle('on', b.dataset.u === unit));
+}
+
+// -- knoppen ----------------------------------------------------------------
+async function connectBle(showAll) {
+  let dev;
+  try { dev = await BleAdapter.pick(showAll); }
+  catch (e) { if (e && e.name !== 'NotFoundError') alert(e.message || e); return; } // NotFoundError = keuzelijst weggeklikt
+  car.start(new BleAdapter(dev), false);
+  dev.addEventListener('gattserverdisconnected', () => { if (car.running) car.set({ status: 'fout', message: 'Verbinding verbroken, opnieuw proberen…' }); });
+}
+$('#connBtn').onclick = () => connectBle(false);
+$('#allLink').onclick = e => { e.preventDefault(); connectBle(true); };
+$('#demoBtn').onclick = () => car.start(new DemoAdapter(), true);
+$('#stopBtn').onclick = () => car.stop();
+$('#unitSeg').onclick = e => { const u = e.target.dataset.u; if (u) { unit = u; saveStore('obd_unit', u); render(); } };
+$('#target').onchange = e => act(() => car.updateSettings({ target_bar: e.target.value }));
+$('#measure').onclick = () => act(() => car.measureTpms());
+$('#accuBtn').onclick = () => act(() => car.accuTest(30));
+$('#tripReset').onclick = () => { car.resetTrip(); render(); };
+$('#dtcBtn').onclick = async () => { $('#dtcBtn').disabled = true; try { await car.readDtcs(); } catch (x) { $('#dtcOut').innerHTML = '<div class="err">' + esc(x.message) + '</div>'; } render(); };
+$('#conForm').onsubmit = async e => {
+  e.preventDefault(); const c = $('#conIn').value.trim(); if (!c) return;
+  const log = $('#conLog'); if (log.textContent === 'Nog niets verstuurd.') log.textContent = '';
+  try { const r = await car.console(c); log.textContent += '> ' + c + '\n' + r + '\n'; } catch (x) { log.textContent += '> ' + c + '\n' + x.message + '\n'; }
+  log.scrollTop = log.scrollHeight; $('#conIn').value = '';
+};
+$('#swForm').onsubmit = async e => { e.preventDefault(); try { await car.sweep($('#swH').value, $('#swA').value, $('#swB').value); } catch (x) { $('#swOut').innerHTML = '<div class="err">' + esc(x.message) + '</div>'; } };
+$('#setForm').onsubmit = e => {
+  e.preventDefault(); const m = $('#setMsg');
+  try {
+    car.updateSettings({ tpms_header: $('#sH').value, tpms_pids: $('#sP').value.split(/[ ,]+/).filter(Boolean), tpms_bytes: $('#sB').value, tpms_kpa_per_count: $('#sK').value, tpms_offset_kpa: $('#sO').value, brandstof: $('#sF').value, custom_tekst: $('#sC').value });
+    m.style.color = 'var(--ok)'; m.textContent = 'Opgeslagen'; formFilled = false;
+  } catch (x) { m.style.color = 'var(--bad)'; m.textContent = x.message; }
+};
+setInterval(render, 500);
+render();
+
+</script></body></html>
